@@ -1036,7 +1036,10 @@ window.BOARD_DATA = null;
   var CLAUDE_POLL_MS = 2000;
   // answers: what is typed under the open questions, keyed by the question text.
   // pics: pictures waiting under the message box; they are sent with the message.
-  var act = { editing: null, note: '', answers: {}, key: '', refocus: false, orderFocus: '', pics: [] };
+  // gen counts the times the message box was reset (another card opened, card closed): an answer that arrives
+  // for a send of an earlier generation must not touch what the owner types now.
+  var act = { editing: null, note: '', answers: {}, key: '', refocus: false, orderFocus: '', pics: [], gen: 0 };
+  var actAreas = [];
   var noteEl = null;
   var actChips = null;
   var newPics = [];
@@ -1777,8 +1780,10 @@ window.BOARD_DATA = null;
       return;
     }
     if (!data || !byId[id]) return;
+    // The hash of the card that is open again (a drop that asks for answers): the typed text stays.
+    var again = dlg.open && openId === id;
     openId = id;
-    renderDetail(byId[id], true);
+    renderDetail(byId[id], !again);
     if (WRITE) actMsg.textContent = openNote;
     openNote = '';
     if (WRITE && carry && carry.id === id) {
@@ -1805,6 +1810,7 @@ window.BOARD_DATA = null;
   });
   $('dlg-close').addEventListener('click', function () { dlg.close(); });
   dlg.addEventListener('close', function () {
+    act.gen++;
     act.editing = null;
     act.note = '';
     act.answers = {};
@@ -2139,6 +2145,7 @@ window.BOARD_DATA = null;
   function renderActions(t, reset) {
     if (!WRITE) return;
     if (reset) {
+      act.gen++;
       act.editing = null;
       act.note = '';
       act.answers = {};
@@ -2209,7 +2216,7 @@ window.BOARD_DATA = null;
     actChips = h('div', 'chips');
 
     var questions = t.questions || [];
-    var areas = [];
+    actAreas = [];
 
     // What the owner typed: the non-blank answers to the open questions, in their order.
     function typedAnswers() {
@@ -2221,11 +2228,24 @@ window.BOARD_DATA = null;
       return list;
     }
 
-    function clearTyped() {
-      act.note = '';
-      act.answers = {};
-      note.value = '';
-      areas.forEach(function (a) { a.value = ''; });
+    // What the owner has typed at the moment of a send.
+    function typedNow() {
+      var answers = {};
+      Object.keys(act.answers).forEach(function (q) { answers[q] = act.answers[q]; });
+      return { gen: act.gen, note: act.note, answers: answers };
+    }
+
+    // Called when a send has succeeded: forgets what that send carried. It leaves alone the boxes of another card
+    // (the card was closed or changed while the request ran) and what was typed after the send started.
+    function clearTyped(sent) {
+      if (sent.gen !== act.gen) return false;
+      if (act.note === sent.note) act.note = '';
+      Object.keys(sent.answers).forEach(function (q) {
+        if (act.answers[q] === sent.answers[q]) delete act.answers[q];
+      });
+      if (noteEl) noteEl.value = act.note;
+      actAreas.forEach(function (a) { a.el.value = act.answers[a.q] || ''; });
+      return true;
     }
 
     var box = h('div', 'act-buttons');
@@ -2236,11 +2256,9 @@ window.BOARD_DATA = null;
       var answers = typedAnswers();
       if (answers.length) body.answers = answers;
       if (act.note.trim()) body.note = act.note.trim();
+      var sent = typedNow();
       send('/api/move', body, actMsg, buttons, { pics: act.pics, redraw: drawActChips }).then(function (answer) {
-        if (answer && answer.ok) {
-          clearTyped();
-          act.refocus = true;
-        }
+        if (answer && answer.ok && clearTyped(sent)) act.refocus = true;
       });
     }
 
@@ -2262,12 +2280,10 @@ window.BOARD_DATA = null;
         actMsg.textContent = questions.length ? 'Wpisz odpowiedź albo uwagę' : 'Wpisz komentarz';
         return;
       }
+      var sent = typedNow();
       send('/api/say', body, actMsg, buttons, { pics: act.pics, redraw: drawActChips }).then(function (answer) {
-        if (answer && answer.ok) {
-          clearTyped();
-          // Answered questions leave the list, which rebuilds the fields.
-          if (body.answers) act.refocus = true;
-        }
+        // Answered questions leave the list, which rebuilds the fields.
+        if (answer && answer.ok && clearTyped(sent) && body.answers) act.refocus = true;
       });
     });
     buttons.push(say);
@@ -2285,9 +2301,10 @@ window.BOARD_DATA = null;
           actMsg.textContent = 'Wpisz wiadomość do Claude';
           return;
         }
+        var sent = typedNow();
         send('/api/claude', { id: t.id, text: act.note.trim(), model: model.value }, actMsg, buttons, { pics: act.pics, redraw: drawActChips }).then(function (answer) {
           if (answer && answer.ok) {
-            clearTyped();
+            clearTyped(sent);
             pollClaude();
           }
         });
@@ -2374,7 +2391,7 @@ window.BOARD_DATA = null;
       area.placeholder = 'Twoja odpowiedź';
       area.value = act.answers[q] || '';
       area.addEventListener('input', function () { act.answers[q] = area.value; });
-      areas.push(area);
+      actAreas.push({ q: q, el: area });
       actRow.appendChild(field('wide', q, area));
     });
     actRow.appendChild(field(owner ? 'big wide' : 'wide', owner ? 'Twoja ocena lub poprawki' : 'Komentarz dla agenta', note));
@@ -2417,7 +2434,10 @@ window.BOARD_DATA = null;
     form.appendChild(field('narrow', 'Priorytet', prio));
     form.appendChild(box);
 
+    var gen = act.gen;
     function leave() {
+      // The card was closed or changed while the edit was sent: the box now belongs to another card.
+      if (gen !== act.gen) return;
       act.editing = null;
       act.key = '';
       act.refocus = true;
@@ -2489,9 +2509,13 @@ window.BOARD_DATA = null;
         clearPics(newPics);
         drawNewChips();
         try { localStorage.setItem(NEW_KEY, JSON.stringify({ type: type.value, stage: stage.value })); } catch (e) { /* see above */ }
-        $('n-title').value = '';
-        $('n-summary').value = '';
-        dlgNew.close();
+        // Text typed while the card was being sent is not the card's: it stays, and so does the form.
+        var kept = $('n-title').value.trim() !== title || $('n-summary').value.trim() !== summary;
+        if (!kept) {
+          $('n-title').value = '';
+          $('n-summary').value = '';
+          dlgNew.close();
+        }
         pendingOpen = answer.id || null;
       });
     });
