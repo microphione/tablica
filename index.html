@@ -1,1 +1,2978 @@
-<!doctype html><meta charset="utf-8"><title>Tablica</title><p>Strona tablicy zostanie tu opublikowana.</p>
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Tablica</title>
+<style>
+:root {
+  --bg: #f3f2ee;
+  --col: #e9e7e1;
+  --surface: #ffffff;
+  --text: #1d2126;
+  --muted: #555d66;
+  --border: #cfccc3;
+  --accent: #2a5a8c;
+  --accent-tint: #dce9f6;
+  --focus: #0b57d0;
+  --tag-bg: #eceae4;
+  --hi-fg: #9c1c14; --hi-bg: #fde8e6;
+  --md-fg: #7a4d00; --md-bg: #fdf0cf;
+  --lo-fg: #2f5f33; --lo-bg: #e3f1e3;
+  --backdrop: rgba(20, 22, 26, 0.55);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14161a;
+    --col: #1b1e23;
+    --surface: #242830;
+    --text: #e8eaed;
+    --muted: #a9b1ba;
+    --border: #3a404a;
+    --accent: #8db6e6;
+    --accent-tint: #26384d;
+    --focus: #7db0ff;
+    --tag-bg: #313640;
+    --hi-fg: #ffb4ab; --hi-bg: #4d2220;
+    --md-fg: #f0c36a; --md-bg: #45360f;
+    --lo-fg: #a9d7ab; --lo-bg: #1f3b22;
+    --backdrop: rgba(0, 0, 0, 0.7);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.45 system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 16px 8px;
+}
+.top h1 { margin: 0; font-size: 1.2rem; font-weight: 650; }
+.stamp { margin-left: auto; color: var(--muted); font-size: 0.9rem; }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+.filters input[type="search"] { flex: 1 1 220px; max-width: 360px; }
+.filters input, .filters select, .filters button {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 9px;
+  min-height: 34px;
+}
+.filters button { cursor: pointer; flex: none; }
+.filters button:hover { border-color: var(--accent); }
+.toggle { display: inline-flex; align-items: center; gap: 6px; margin-left: 4px; cursor: pointer; }
+.toggle input { width: 18px; height: 18px; min-height: 0; margin: 0; }
+
+.message {
+  margin: 24px 16px;
+  padding: 16px 20px;
+  max-width: 640px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.message p { margin: 0 0 8px; }
+.message code, .path {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+  background: var(--tag-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.board {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 12px;
+  padding: 0 16px 16px;
+  overflow-x: auto;
+}
+.col {
+  flex: 1 0 212px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--col);
+  border-radius: 8px;
+  border-top: 3px solid var(--border);
+}
+.col.is-owner { border-top-color: var(--accent); }
+.col-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 6px;
+}
+.col-head h2 { margin: 0; font-size: 0.98rem; font-weight: 650; }
+.count {
+  min-width: 1.8em;
+  text-align: center;
+  padding: 0 7px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.col-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 8px 10px; }
+.cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.empty { margin: 6px 4px; color: var(--muted); font-size: 0.9rem; }
+.more {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.more:hover { border-color: var(--accent); }
+
+.card {
+  display: block;
+  padding: 9px 11px 10px;
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: 6px;
+}
+.card:hover { border-color: var(--accent); }
+.card.p-high { border-left-color: var(--hi-fg); }
+.card.p-medium { border-left-color: var(--md-fg); }
+.card.p-low { border-left-color: var(--lo-fg); }
+.card-id { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.card-title { margin: 1px 0 4px; font-size: 0.98rem; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; }
+.card-summary {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.steps-bar { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
+.steps-track { flex: 1; height: 6px; border-radius: 3px; background: var(--tag-bg); border: 1px solid var(--border); overflow: hidden; }
+.steps-fill { height: 100%; background: var(--accent); }
+.steps-count { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.steps { list-style: none; margin: 0 0 8px; padding: 0; font-size: 0.85rem; }
+.dlg-body .steps { padding: 0; font-size: 1rem; }
+/* position: the hidden state word of a step is absolutely placed; without a positioned parent it escapes the
+   scrolling column and makes the whole page scroll. */
+.step { position: relative; display: flex; align-items: baseline; gap: 6px; margin: 2px 0; overflow-wrap: anywhere; min-width: 0; }
+.step-mark { flex: none; width: 1.1em; text-align: center; }
+.step-text { min-width: 0; }
+.step.done { color: var(--muted); }
+.step.done .step-text { text-decoration: line-through; }
+.step.doing { font-weight: 650; }
+.step-now { font-size: 0.72rem; font-weight: 650; padding: 0 5px; margin-right: 2px; border-radius: 4px; background: var(--accent-tint); color: var(--text); }
+.card-now { margin: 0 0 8px; font-size: 0.85rem; overflow-wrap: anywhere; }
+.badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: var(--tag-bg);
+  color: var(--text);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.badge.hi { background: var(--hi-bg); color: var(--hi-fg); }
+.badge.md { background: var(--md-bg); color: var(--md-fg); }
+.badge.lo { background: var(--lo-bg); color: var(--lo-fg); }
+.badge.blocked { border: 1px solid var(--md-fg); background: transparent; }
+.badge.ask { background: var(--accent-tint); color: var(--text); }
+.badge.busy { background: var(--accent); color: var(--surface); font-weight: 650; }
+.card-fail { margin: 0 0 8px; font-size: 0.85rem; font-weight: 600; color: var(--hi-fg); overflow-wrap: anywhere; }
+
+.flash { animation: flash 2.6s ease-out; }
+@keyframes flash {
+  0%, 35% { background: var(--accent-tint); box-shadow: 0 0 0 3px var(--accent); }
+  100% { background: var(--surface); box-shadow: 0 0 0 0 transparent; }
+}
+
+dialog {
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  width: min(880px, 94vw);
+  max-width: none;
+  max-height: min(92vh, 960px);
+}
+dialog[open] { display: flex; flex-direction: column; }
+dialog::backdrop { background: var(--backdrop); }
+.dlg-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.dlg-head .badges { flex: 1; }
+.dlg-id { font-weight: 650; font-variant-numeric: tabular-nums; }
+.dlg-close {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 12px;
+  min-height: 34px;
+  cursor: pointer;
+}
+.dlg-close:hover { border-color: var(--accent); }
+.dlg-body { overflow-y: auto; padding: 14px 20px 20px; }
+.dlg-body h2 { margin: 0 0 8px; font-size: 1.35rem; line-height: 1.3; overflow-wrap: anywhere; }
+.dlg-body .pl-summary { margin: 0; font-size: 1.02rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dlg-body .en-head {
+  margin: 22px 0 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.dlg-body .en-title { margin: 0 0 4px; font-size: 1.05rem; font-weight: 650; overflow-wrap: anywhere; }
+.dlg-body section { margin-top: 14px; }
+.dlg-body h3 { margin: 0 0 4px; font-size: 0.85rem; color: var(--muted); font-weight: 650; }
+.dlg-body p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dlg-body ul, .dlg-body ol { margin: 0; padding-left: 1.3em; }
+.dlg-body li { margin: 2px 0; overflow-wrap: anywhere; }
+.dlg-body a { color: var(--accent); }
+.dlg-body .hist { list-style: none; padding: 0; }
+.dlg-body .hist li { display: flex; flex-wrap: wrap; gap: 2px 10px; }
+.dlg-body .thread { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.dlg-body .thread li { margin: 0; }
+.thread-head { display: flex; flex-wrap: wrap; gap: 2px 10px; }
+.thread-who { font-weight: 650; }
+.thread-who.claude { color: var(--accent); }
+.thread-date { color: var(--muted); font-variant-numeric: tabular-nums; }
+.thread-q { margin: 2px 0; padding: 2px 0 2px 8px; border-left: 3px solid var(--border); color: var(--muted); font-style: italic; overflow-wrap: anywhere; }
+.thread-q b { font-style: normal; font-weight: 650; }
+.thread-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.hist-date { color: var(--muted); font-variant-numeric: tabular-nums; }
+.hist-status { font-weight: 600; }
+.path { overflow-wrap: anywhere; }
+
+/* write mode: only built when the page is served over http */
+.hint { color: var(--muted); font-size: 0.9rem; }
+.head-btn, .act-btn {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 12px;
+  min-height: 34px;
+  cursor: pointer;
+}
+.head-btn:hover, .act-btn:hover { border-color: var(--accent); }
+.act-btn.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.act-btn:disabled { opacity: 0.55; cursor: default; }
+.dlg-now { flex: none; padding: 10px 20px; border-bottom: 1px solid var(--border); overflow-y: auto; max-height: 32vh; background: var(--accent-tint); color: var(--text); border-left: 6px solid var(--accent); }
+.dlg-now.owner { background: var(--hi-bg); color: var(--hi-fg); border-left-color: var(--hi-fg); }
+.dlg-now h2 { margin: 0 0 4px; font-size: 1.05rem; line-height: 1.3; }
+.dlg-now.owner h2 { font-size: 1.2rem; }
+.dlg-now p, .dlg-now ul { margin: 2px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dlg-now ul { padding-left: 1.3em; white-space: normal; }
+.dlg-now.owner p, .dlg-now.owner li { font-weight: 650; }
+.dlg-now p.now-wait { font-weight: 400; font-style: italic; }
+.dlg-act { flex: none; padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--col); overflow-y: auto; max-height: 55vh; }
+.act-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; }
+.act-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.act-line { margin: 0; color: var(--muted); flex: 0 0 100%; }
+.act-move { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; flex: 0 0 100%; }
+.act-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 220px; font-size: 0.85rem; color: var(--muted); }
+.act-field { overflow-wrap: anywhere; }
+.act-field.wide { flex-basis: 100%; }
+.act-field.narrow { flex: 0 1 auto; }
+.act-field input, .act-field textarea, .act-field select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 9px;
+  min-height: 34px;
+  width: 100%;
+}
+.act-field textarea { resize: vertical; min-height: 5.5em; }
+.act-field.big textarea { min-height: 8em; }
+.act-edit { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.act-edit .act-field { flex: none; }
+.act-edit .act-buttons, .new-form .act-buttons { margin-top: 2px; }
+.act-claude { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 10px; font-weight: 600; overflow-wrap: anywhere; }
+.act-claude.fail { color: var(--hi-fg); }
+.act-msg { margin: 0; font-size: 0.92rem; }
+.act-msg:not(:empty) { margin-top: 8px; color: var(--hi-fg); font-weight: 600; overflow-wrap: anywhere; }
+.board-msg { margin: 0 16px; font-size: 0.92rem; }
+.board-msg:not(:empty) { margin: 0 16px 8px; padding: 6px 10px; color: var(--hi-fg); background: var(--hi-bg); border-radius: 6px; font-weight: 600; }
+.dlg-body.editing > h2 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.dlg-body.editing > .pl-summary { display: none; }
+#new-dlg { width: min(560px, 94vw); }
+.new-form { display: flex; flex-direction: column; gap: 10px; padding: 14px 20px 18px; }
+.new-form h2 { margin: 0; font-size: 1.2rem; }
+.new-form .act-row { align-items: flex-start; }
+.board.dragging .col.drop-dim { opacity: 0.45; }
+.board.dragging .col.drop-ok { outline: 2px dashed var(--accent); outline-offset: -2px; }
+.board.dragging .col.drop-over { background: var(--accent-tint); }
+/* manual order: the line between two cards where the dragged card lands */
+.cards li { position: relative; }
+.cards li.mark-before::before, .cards li.mark-after::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  pointer-events: none;
+}
+.cards li.mark-before::before { top: -5px; }
+.cards li.mark-after::after { bottom: -5px; }
+.cards li.mark-before > .card { box-shadow: inset 0 3px 0 var(--accent); }
+.cards li.mark-after > .card { box-shadow: inset 0 -3px 0 var(--accent); }
+.board.dragging .card.drag-source { opacity: 0.5; }
+.col-head { flex-wrap: wrap; }
+.col-sort {
+  order: 3;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+.col-sort:hover, .col-sort:focus-visible { color: var(--text); border-color: var(--accent); }
+.act-order { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 0 0 100%; }
+.act-order-label { color: var(--muted); font-size: 0.85rem; margin-right: 4px; }
+
+/* attachments */
+.act-msg.info:not(:empty) { color: var(--muted); font-weight: 400; }
+.badge.clip { display: inline-flex; align-items: center; gap: 3px; }
+.badge.clip svg { width: 13px; height: 13px; flex: none; }
+.att-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 12px; }
+.dlg-body .att-list { padding: 0; }
+.dlg-body .att-list li { margin: 0; }
+.att { position: relative; width: 132px; }
+.att-thumb {
+  display: block;
+  width: 132px;
+  height: 96px;
+  padding: 0;
+  overflow: hidden;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: var(--tag-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: zoom-in;
+}
+.att-thumb:hover { border-color: var(--accent); }
+.att-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.att-thumb.broken { display: flex; align-items: center; justify-content: center; text-align: center; padding: 4px; }
+.att-del {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #fff;
+  background: rgba(20, 22, 26, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  cursor: pointer;
+}
+.att-del:hover { background: var(--hi-fg); }
+.att-cap { margin-top: 3px; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.att-note { font-size: 0.85rem; overflow-wrap: anywhere; }
+.att-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 10px; }
+.thread-att { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.thread-att .att-thumb { width: 84px; height: 62px; }
+.chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; flex: 0 0 100%; }
+.chips:empty { display: none; }
+.chips-label { font-size: 0.85rem; color: var(--muted); }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 2px 3px 2px 3px;
+  font-size: 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.chip img { width: 28px; height: 28px; flex: none; object-fit: cover; border-radius: 3px; }
+.chip-name { min-width: 0; max-width: 14em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-x {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font: inherit;
+  line-height: 1;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.chip-x:hover { background: var(--hi-bg); color: var(--hi-fg); }
+dialog.drop-hot::after {
+  content: "Upuść obraz tutaj, aby go dodać";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 16px;
+  font-size: 1.2rem;
+  font-weight: 650;
+  color: var(--text);
+  background: var(--accent-tint);
+  opacity: 0.92;
+  border: 3px dashed var(--accent);
+  border-radius: 10px;
+  pointer-events: none;
+}
+#viewer {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: #0e1013;
+  color: #fff;
+}
+#viewer .hint { color: #b9c0c8; }
+#viewer::backdrop { background: rgba(0, 0, 0, 0.88); }
+.vw-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 12px 12px 4px; }
+.vw-img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 4px; cursor: zoom-in; }
+/* Natural size: the picture scrolls inside the large view instead of being fitted. */
+.vw-stage.zoom { display: block; overflow: auto; }
+.vw-stage.zoom .vw-img { display: block; max-width: none; max-height: none; margin: 0 auto; border-radius: 0; cursor: zoom-out; }
+.vw-fail { margin: 0; font-size: 1.1rem; text-align: center; }
+.vw-bar { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 12px; padding: 8px 12px 12px; }
+.vw-cap { flex: 1 1 260px; max-height: 5.5em; overflow-y: auto; text-align: center; font-size: 0.92rem; overflow-wrap: anywhere; }
+.vw-btn {
+  font: inherit;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+  padding: 5px 14px;
+  min-height: 40px;
+  cursor: pointer;
+}
+a.vw-btn { display: inline-flex; align-items: center; text-decoration: none; }
+.vw-btn:hover { background: rgba(255, 255, 255, 0.26); }
+#viewer :focus-visible { outline-color: #9cc2ff; }
+@media (max-width: 600px) {
+  .vw-cap { order: -1; flex-basis: 100%; }
+}
+
+@media (max-height: 520px) {
+  .top { padding: 6px 12px 4px; gap: 4px 12px; }
+  .top h1 { font-size: 1rem; }
+  .filters { padding: 0 12px 6px; gap: 6px; }
+  .filters input, .filters select, .filters button { min-height: 28px; padding: 2px 7px; font-size: 0.88rem; }
+  .filters input[type="search"] { flex-basis: 150px; }
+  .board { padding: 0 12px 10px; }
+  dialog { max-height: 96vh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flash { animation: none; background: var(--accent-tint); box-shadow: 0 0 0 3px var(--accent); }
+  * { scroll-behavior: auto; transition: none; }
+}
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+/* remote mode: only built when the page is the published shell (window.BOARD_REMOTE) */
+.remote-tag { color: var(--muted); font-size: 0.9rem; }
+.remote-wait { margin: 0 16px 8px; padding: 6px 10px; border-radius: 6px; background: var(--md-bg); color: var(--md-fg); font-size: 0.92rem; font-weight: 600; }
+.card.wait { border-style: dashed; }
+.badge.wait { background: var(--md-bg); color: var(--md-fg); }
+.rm-gate { position: fixed; inset: 0; z-index: 1000; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--bg); }
+.rm-box, .rm-box form { display: flex; flex-direction: column; gap: 10px; }
+.rm-box { width: min(32rem, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+.rm-box h2 { margin: 0; font-size: 1.2rem; }
+.rm-box p { margin: 0; }
+.rm-box input[type="password"] { font: inherit; width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); }
+.rm-box .rm-msg:not(:empty) { color: var(--hi-fg); background: var(--hi-bg); padding: 6px 10px; border-radius: 6px; font-weight: 600; overflow-wrap: anywhere; }
+.rm-box .rm-list { display: flex; flex-direction: column; gap: 8px; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1 id="page-title">Tablica</h1>
+  <button type="button" class="head-btn" id="new-btn" hidden>+ Nowy pomysł</button>
+  <span class="hint" id="hint" hidden>Tylko podgląd. Żeby przesuwać karty, uruchom: npm run board</span>
+  <span class="stamp" id="stamp" aria-live="off">wczytywanie danych</span>
+</header>
+
+<form class="filters" id="filters" role="search" onsubmit="return false">
+  <input type="search" id="f-q" placeholder="Szukaj: numer, tytuł, opis, cel" aria-label="Szukaj">
+  <select id="f-stage"></select>
+  <select id="f-priority" aria-label="Priorytet"></select>
+  <select id="f-type" aria-label="Rodzaj"></select>
+  <button type="button" id="f-clear">Wyczyść</button>
+  <label class="toggle"><input type="checkbox" id="f-dropped"> Pokaż odrzucone</label>
+</form>
+
+<div class="message" id="message" hidden>
+  <p>To jest szablon tablicy, bez danych. Tablica to plik <code>Tablica.html</code> w głównym folderze projektu.</p>
+  <p>Uruchom w folderze projektu polecenie: <code>node tools/board/board.mjs build</code></p>
+</div>
+
+<p class="board-msg" id="board-msg" role="status" aria-live="polite"></p>
+
+<main class="board" id="board" hidden></main>
+
+<dialog id="detail" aria-labelledby="dlg-title">
+  <div class="dlg-head">
+    <span class="dlg-id" id="dlg-id"></span>
+    <span class="badges" id="dlg-badges"></span>
+    <button type="button" class="dlg-close" id="dlg-close">Zamknij</button>
+  </div>
+  <div class="dlg-now" id="dlg-now" hidden></div>
+  <div class="dlg-act" id="dlg-act" hidden>
+    <p class="act-claude" id="act-claude" role="status" aria-live="polite" hidden></p>
+    <div class="act-row" id="act-row"></div>
+    <p class="act-msg" id="act-msg" role="status" aria-live="polite"></p>
+  </div>
+  <div class="dlg-body" id="dlg-body"></div>
+</dialog>
+
+<dialog id="new-dlg" aria-labelledby="new-title">
+  <form class="new-form" id="new-form">
+    <h2 id="new-title">Nowy pomysł</h2>
+    <div class="act-row">
+      <label class="act-field wide">Tytuł <input type="text" id="n-title" required></label>
+      <label class="act-field wide">Opis <textarea id="n-summary" rows="5" required></textarea></label>
+      <label class="act-field narrow">Rodzaj <select id="n-type"></select></label>
+      <label class="act-field narrow"><span id="n-stage-label"></span> <select id="n-stage"></select></label>
+      <label class="act-field narrow">Priorytet <select id="n-priority"></select></label>
+    </div>
+    <div class="att-tools">
+      <button type="button" class="act-btn" id="n-file-btn">Dodaj obraz</button>
+      <input type="file" id="n-file" multiple accept="image/png,image/jpeg,image/gif,image/webp" hidden>
+      <span class="hint">albo wklej obraz (Ctrl+V), albo przeciągnij plik na to okno</span>
+    </div>
+    <div class="chips" id="n-chips"></div>
+    <div class="act-buttons">
+      <button type="submit" class="act-btn primary" id="n-submit">Dodaj pomysł</button>
+      <button type="button" class="act-btn" id="n-cancel">Anuluj</button>
+    </div>
+    <p class="act-msg" id="n-msg" role="status" aria-live="polite"></p>
+  </form>
+</dialog>
+
+<dialog id="viewer" aria-label="Podgląd obrazu">
+  <div class="vw-stage" id="vw-stage">
+    <img class="vw-img" id="vw-img" alt="">
+    <p class="vw-fail" id="vw-fail" hidden>Nie udało się wczytać obrazu.</p>
+  </div>
+  <div class="vw-bar" id="vw-bar">
+    <button type="button" class="vw-btn" id="vw-prev">Poprzedni</button>
+    <div class="vw-cap" id="vw-cap" aria-live="polite"></div>
+    <button type="button" class="vw-btn" id="vw-next">Następny</button>
+    <button type="button" class="vw-btn" id="vw-zoom" aria-pressed="false">Rozmiar 100%</button>
+    <a class="vw-btn" id="vw-open" target="_blank" rel="noopener">Otwórz w nowej karcie</a>
+    <button type="button" class="vw-btn" id="vw-close">Zamknij</button>
+  </div>
+</dialog>
+
+<script>
+window.BOARD_DATA = null;
+</script>
+<script>window.BOARD_REMOTE = {"repo":"microphione/tablice-dane","branch":"main"};</script>
+<script>
+(function () {
+  'use strict';
+
+  // Set only by the published shell (the page on GitHub Pages); the local page never sets it.
+  var REMOTE = window.BOARD_REMOTE || null;
+
+  // From the disk the page origin is null and only '*' reaches the parent; over http only the board's own origin gets the data.
+  var FROM_DISK = location.protocol === 'file:';
+
+  if (!REMOTE && location.search.indexOf('poll=') !== -1) {
+    parent.postMessage({ boardData: window.BOARD_DATA }, FROM_DISK ? '*' : location.origin);
+    return;
+  }
+
+  function h(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  /* ---------- remote mode: the published page reads and writes the data repository through the GitHub API ---------- */
+
+  var API = 'https://api.github.com';
+  var TOKEN_KEY = 'board-remote-token';
+  var FOLDER_KEY = 'board-remote-folder';
+  var MIME = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' };
+  // token, folder: the login and the chosen board; etags: of the polled files; own: operations queued by this page
+  // that data.json does not list yet; results: data.remote.results of the last state; inboxNames: files of the inbox.
+  var rm = { token: '', folder: '', etags: {}, own: {}, results: {}, inboxNames: [], prompt: null, gate: null, onQueued: null };
+  var rmBlobs = {};
+
+  function storeGet(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function storeSet(key, value) {
+    try { localStorage.setItem(key, value); } catch (e) { /* storage unavailable: the choice is just not remembered */ }
+  }
+  function storeDel(key) {
+    try { localStorage.removeItem(key); } catch (e) { /* see above */ }
+  }
+
+  // The only place that sends the token, and only to the GitHub API.
+  function rmRaw(token, path, opts) {
+    opts = opts || {};
+    var headers = { 'Authorization': 'Bearer ' + token, 'X-GitHub-Api-Version': '2022-11-28' };
+    Object.keys(opts.headers || {}).forEach(function (k) { headers[k] = opts.headers[k]; });
+    var init = { method: opts.method || 'GET', headers: headers, cache: 'no-store' };
+    if (opts.body !== undefined) {
+      init.body = opts.body;
+      headers['Content-Type'] = 'application/json';
+    }
+    return fetch(API + path, init);
+  }
+
+  // Every call of the page goes through here. A 401 shows the token form again and the call is repeated with the new token.
+  function rmApi(path, opts) {
+    var used = rm.token;
+    return rmRaw(used, path, opts).then(function (res) {
+      if (res.status !== 401) return res;
+      var again = function () { return rmApi(path, opts); };
+      if (rm.token && rm.token !== used) return again();
+      return rmNeedToken('Token już nie działa (GitHub odpowiedział 401). Wklej nowy token.').then(again);
+    });
+  }
+
+  function rmEnc(path) { return path.split('/').map(encodeURIComponent).join('/'); }
+  function rmFolderPath(rest) { return rmEnc(rm.folder) + (rest ? '/' + rmEnc(rest) : ''); }
+  function rmContents(sub) {
+    return '/repos/' + REMOTE.repo + '/contents/' + sub + '?ref=' + encodeURIComponent(REMOTE.branch);
+  }
+
+  function rmLogout() {
+    storeDel(TOKEN_KEY);
+    rm.token = '';
+    location.reload();
+  }
+
+  // The full-screen box of the token form, the board picker and the load errors.
+  function rmGate(build) {
+    if (!rm.gate) {
+      rm.gate = h('div', 'rm-gate');
+      rm.gate.setAttribute('role', 'region');
+      rm.gate.setAttribute('aria-label', 'Zdalna tablica');
+      document.body.appendChild(rm.gate);
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('dialog[open]'), function (d) { d.close(); });
+    var box = h('div', 'rm-box');
+    box.appendChild(h('h2', null, 'Zdalna tablica'));
+    build(box);
+    rm.gate.textContent = '';
+    rm.gate.appendChild(box);
+    var first = box.querySelector('input, button');
+    if (first) first.focus();
+  }
+
+  function rmGateOff() {
+    if (rm.gate) rm.gate.remove();
+    rm.gate = null;
+  }
+
+  function rmButton(label, primary, onClick) {
+    var b = h('button', 'act-btn' + (primary ? ' primary' : ''), label);
+    b.type = 'button';
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  // Asks for the token until GitHub confirms that it reaches the data repository. One form at a time.
+  function rmNeedToken(message) {
+    if (rm.prompt) return rm.prompt;
+    rm.token = '';
+    storeDel(TOKEN_KEY);
+    rm.prompt = new Promise(function (resolve) {
+      rmGate(function (box) {
+        box.appendChild(h('p', null, 'Wklej token dostępu do GitHuba. Utwórz token typu „fine-grained”: tylko repozytorium ' + REMOTE.repo + ', uprawnienie Contents: Read and write.'));
+        var form = h('form');
+        var input = h('input');
+        input.type = 'password';
+        input.autocomplete = 'off';
+        input.spellcheck = false;
+        input.setAttribute('aria-label', 'Token GitHub');
+        var go = h('button', 'act-btn primary', 'Zaloguj');
+        go.type = 'submit';
+        var msg = h('p', 'rm-msg', message || '');
+        msg.setAttribute('role', 'status');
+        form.appendChild(input);
+        form.appendChild(go);
+        form.appendChild(msg);
+        form.addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          var value = input.value.trim();
+          if (!value) {
+            msg.textContent = 'Wklej token.';
+            return;
+          }
+          go.disabled = true;
+          msg.textContent = '';
+          rmRaw(value, '/repos/' + REMOTE.repo).then(function (res) {
+            go.disabled = false;
+            if (res.status !== 200) {
+              msg.textContent = 'Ten token nie ma dostępu do ' + REMOTE.repo + ' (GitHub odpowiedział ' + res.status + ').';
+              return;
+            }
+            rm.token = value;
+            storeSet(TOKEN_KEY, value);
+            rm.prompt = null;
+            rmGateOff();
+            resolve();
+          }, function () {
+            go.disabled = false;
+            msg.textContent = 'Nie udało się połączyć z GitHubem. Sprawdź internet i spróbuj jeszcze raz.';
+          });
+        });
+        box.appendChild(form);
+      });
+    });
+    return rm.prompt;
+  }
+
+  function rmFailText(e) {
+    return e && e.name === 'Error' && e.message ? e.message : 'Brak połączenia z GitHubem.';
+  }
+
+  // A failed load at the start: the message with the ways out. Resolves with what `retry` resolves with.
+  function rmFail(message, retry) {
+    return new Promise(function (resolve) {
+      rmGate(function (box) {
+        var msg = h('p', 'rm-msg', message);
+        msg.setAttribute('role', 'status');
+        box.appendChild(msg);
+        box.appendChild(rmButton('Spróbuj ponownie', true, function () { rmGateOff(); resolve(retry()); }));
+        box.appendChild(rmButton('Zmień tablicę', false, function () { location.href = location.pathname + '?pick=1'; }));
+        box.appendChild(rmButton('Wyloguj', false, rmLogout));
+      });
+    });
+  }
+
+  function rmFolders() {
+    return rmApi(rmContents('')).then(function (res) {
+      if (res.status !== 200) throw new Error('GitHub nie pokazał zawartości ' + REMOTE.repo + ' (HTTP ' + res.status + ').');
+      return res.json();
+    }).then(function (items) {
+      return items.filter(function (i) { return i.type === 'dir' && i.name.charAt(0) !== '.'; })
+        .map(function (i) { return i.name; });
+    });
+  }
+
+  function rmPickFolder(names) {
+    return new Promise(function (resolve) {
+      rmGate(function (box) {
+        box.appendChild(h('p', null, 'Wybierz tablicę:'));
+        var list = h('div', 'rm-list');
+        names.forEach(function (n) {
+          list.appendChild(rmButton(n, false, function () { rmGateOff(); resolve(n); }));
+        });
+        box.appendChild(list);
+        box.appendChild(rmButton('Wyloguj', false, rmLogout));
+      });
+    });
+  }
+
+  function rmUseFolder(name) {
+    rm.folder = name;
+    rm.etags = {};
+    storeSet(FOLDER_KEY, name);
+    try {
+      history.replaceState(null, '', location.pathname + '?b=' + encodeURIComponent(name) + location.hash);
+    } catch (e) { /* the address just does not carry the choice */ }
+  }
+
+  // data.json of the chosen board, or null when GitHub says it is unchanged (304).
+  function rmGetData() {
+    var path = rmContents(rmFolderPath('data.json'));
+    var headers = { 'Accept': 'application/vnd.github.raw+json' };
+    if (rm.etags[path]) headers['If-None-Match'] = rm.etags[path];
+    return rmApi(path, { headers: headers }).then(function (res) {
+      if (res.status === 304) return null;
+      if (res.status === 404) throw new Error('W folderze „' + rm.folder + '” nie ma jeszcze danych tablicy (data.json). Komputer z tablicą wysyła je przy pierwszej synchronizacji.');
+      if (res.status !== 200) throw new Error('GitHub nie oddał danych tablicy (HTTP ' + res.status + ').');
+      var tag = res.headers.get('ETag');
+      return res.text().then(function (text) {
+        var d = null;
+        try { d = JSON.parse(text); } catch (e) { /* checked below */ }
+        if (!d || !Array.isArray(d.tickets) || !d.config) throw new Error('Plik data.json w folderze „' + rm.folder + '” ma nieznany kształt.');
+        if (tag) rm.etags[path] = tag;
+        return d;
+      });
+    });
+  }
+
+  function rmFirstData() {
+    return rmGetData().then(function (d) { return d; }, function (e) { return rmFail(rmFailText(e), rmFirstData); });
+  }
+
+  function rmChoose() {
+    return rmFolders().then(function (names) {
+      if (!names.length) throw new Error('W repozytorium ' + REMOTE.repo + ' nie ma jeszcze żadnej tablicy.');
+      var q = new URLSearchParams(location.search);
+      var forced = !!q.get('pick');
+      var found = forced ? '' : [q.get('b'), storeGet(FOLDER_KEY)].filter(function (n) { return n && names.indexOf(n) !== -1; })[0];
+      if (!found && !forced && names.length === 1) found = names[0];
+      return found || rmPickFolder(names);
+    }).then(function (name) {
+      rmUseFolder(name);
+      return rmFirstData();
+    }, function (e) { return rmFail(rmFailText(e), rmChoose); });
+  }
+
+  // Token, board, first state. Resolves with data.json of the board; the page starts from it.
+  function rmBoot() {
+    rm.token = storeGet(TOKEN_KEY) || '';
+    return (rm.token ? Promise.resolve() : rmNeedToken('')).then(rmChoose);
+  }
+
+  function rmInbox() {
+    var path = rmContents(rmFolderPath('inbox'));
+    var headers = {};
+    if (rm.etags[path]) headers['If-None-Match'] = rm.etags[path];
+    return rmApi(path, { headers: headers }).then(function (res) {
+      if (res.status === 304) return rm.inboxNames;
+      if (res.status === 404) {
+        delete rm.etags[path];
+        rm.inboxNames = [];
+        return rm.inboxNames;
+      }
+      if (res.status !== 200) throw new Error('HTTP ' + res.status);
+      var tag = res.headers.get('ETag');
+      return res.json().then(function (items) {
+        if (tag) rm.etags[path] = tag;
+        rm.inboxNames = items.map(function (i) { return i.name; });
+        return rm.inboxNames;
+      });
+    });
+  }
+
+  function rmEncode(text) {
+    var bytes = new TextEncoder().encode(text);
+    var bin = '';
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  function rmOpId() {
+    var rnd = new Uint8Array(4);
+    crypto.getRandomValues(rnd);
+    var hex = '';
+    for (var i = 0; i < rnd.length; i++) hex += (rnd[i] < 16 ? '0' : '') + rnd[i].toString(16);
+    return String(Date.now()) + '-' + hex;
+  }
+
+  function rmWriteError(status) {
+    if (status === 403 || status === 404) {
+      return 'GitHub nie pozwolił zapisać w kolejce (HTTP ' + status + '): token musi mieć uprawnienie Contents: Read and write do ' + REMOTE.repo;
+    }
+    return 'nie udało się zapisać w kolejce na GitHubie (HTTP ' + status + ')';
+  }
+
+  // Creates one file of the inbox. Resolves { ok: true } or { ok: false, error }; a conflict (409, 422) is tried once more.
+  function rmPut(name, base64, message) {
+    var path = '/repos/' + REMOTE.repo + '/contents/' + rmFolderPath('inbox/' + name);
+    var body = JSON.stringify({ message: message, content: base64, branch: REMOTE.branch });
+    var once = function () { return rmApi(path, { method: 'PUT', body: body }); };
+    return once().then(function (res) {
+      if (res.status !== 409 && res.status !== 422) return res;
+      return new Promise(function (resolve) { setTimeout(resolve, 400); }).then(once);
+    }).then(function (res) {
+      if (res.status === 200 || res.status === 201) return { ok: true };
+      return { ok: false, error: rmWriteError(res.status) };
+    }, function () { return { ok: false, error: 'brak połączenia z GitHubem' }; });
+  }
+
+  // A picture of the card as a blob: URL, loaded through the API with the token (an <img> cannot send it). Cached per path.
+  function rmBlob(path) {
+    if (!rmBlobs[path]) {
+      rmBlobs[path] = rmApi(rmContents(rmFolderPath('attachments/' + path)), { headers: { 'Accept': 'application/vnd.github.raw' } })
+        .then(function (res) {
+          if (res.status !== 200) throw new Error('HTTP ' + res.status);
+          return res.arrayBuffer();
+        }).then(function (buf) {
+          var ext = path.split('.').pop().toLowerCase();
+          return URL.createObjectURL(new Blob([buf], { type: MIME[ext] || 'image/png' }));
+        });
+      rmBlobs[path].catch(function () { delete rmBlobs[path]; });
+    }
+    return rmBlobs[path];
+  }
+
+  // The page proper (everything below, up to the call at the end) is not indented: in remote mode it starts only
+  // when the first data.json is loaded, in local mode at once with the embedded data.
+  function run(initial) {
+  var POLL_MS = REMOTE ? 15000 : 5000;
+  var DONE_LIMIT = 10;
+  var FLASH_MS = 2600;
+  // The per-repo values (title, stages, types, storage prefix) come with the data from board.config.mjs.
+  var CONFIG = initial.config;
+  document.title = CONFIG.title;
+  document.getElementById('page-title').textContent = CONFIG.title;
+  document.getElementById('f-stage').setAttribute('aria-label', CONFIG.stageNoun);
+  document.getElementById('n-stage-label').textContent = CONFIG.stageNoun;
+  var STORE_KEY = CONFIG.storagePrefix + 'filters';
+
+  var COLUMNS = [
+    ['idea', 'Pomysły'],
+    ['ready', 'Gotowe do wzięcia'],
+    ['in-progress', 'W toku'],
+    ['review', 'Sprawdzanie'],
+    ['owner', 'Czeka na Ciebie'],
+    ['done', 'Zrobione']
+  ];
+  var DROPPED = ['dropped', 'Odrzucone'];
+  var STATUS_LABEL = {};
+  COLUMNS.concat([DROPPED]).forEach(function (c) { STATUS_LABEL[c[0]] = c[1]; });
+
+  var PRIORITY = { high: 'wysoki', medium: 'średni', low: 'niski' };
+  var PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
+  var PRIORITY_CLASS = { high: 'hi', medium: 'md', low: 'lo' };
+  var PRIORITY_MARK = { high: '▲', medium: '◆', low: '▼' };
+  var TYPES = CONFIG.types.map(function (t) { return t.id; });
+  var TYPE = {};
+  CONFIG.types.forEach(function (t) { TYPE[t.id] = t.label; });
+  var STAGES = CONFIG.stages.map(function (s) { return s.id; });
+  var STAGE = {};
+  CONFIG.stages.forEach(function (s) { STAGE[s.id] = s.label; });
+
+  var $ = function (id) { return document.getElementById(id); };
+  var boardEl = $('board');
+  var messageEl = $('message');
+  var stampEl = $('stamp');
+  var dlg = $('detail');
+  var dlgBody = $('dlg-body');
+  var nowEl = $('dlg-now');
+  var nowSig = '';
+
+  // The owner may move a card from any status to these (.claude/rules/board.md); never to W toku or Sprawdzanie.
+  var TARGETS = ['idea', 'ready', 'owner', 'done', 'dropped'];
+  // The buttons of their own in the detail view, with their labels; the other targets go into the select.
+  var MOVES = {
+    idea: { ready: 'Do gotowych', dropped: 'Odrzuć' },
+    owner: { ready: 'Zrobione, oddaję do gotowych', dropped: 'Odrzuć' },
+    ready: { idea: 'Cofnij do pomysłów', dropped: 'Odrzuć' },
+    dropped: { idea: 'Przywróć do pomysłów' }
+  };
+  var EDITABLE = ['idea', 'ready', 'owner', 'dropped'];
+  var AGENT_COLUMNS_MSG = 'W toku i Sprawdzanie ustawia agent, gdy naprawdę pracuje nad kartą.';
+  var WRITE = !!REMOTE || location.protocol === 'http:' || location.protocol === 'https:';
+  var NEW_KEY = CONFIG.storagePrefix + 'new';
+  var boardMsg = $('board-msg');
+  var actEl = $('dlg-act');
+  var actRow = $('act-row');
+  var actMsg = $('act-msg');
+  var actClaude = $('act-claude');
+  // What the board program says about the Claude turns: { running: {id, model} | null, queue: [{id, model}], failed: {id: text} }.
+  var claude = { running: null, queue: [], failed: {} };
+  var claudeLineKey = '';
+  var claudeModel = 'sonnet';
+  var CLAUDE_MODELS = [['sonnet', 'Sonnet (tańszy)'], ['opus', 'Opus (mocniejszy)'], ['fable', 'Fable']];
+  var CLAUDE_POLL_MS = 2000;
+  // answers: what is typed under the open questions, keyed by the question text.
+  // pics: pictures waiting under the message box; they are sent with the message.
+  var act = { editing: null, note: '', answers: {}, key: '', refocus: false, orderFocus: '', pics: [] };
+  var noteEl = null;
+  var actChips = null;
+  var newPics = [];
+  var detailSig = '';
+  var focusAtt = false;
+  var ATT_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+  var ATT_MAX = 15 * 1024 * 1024;
+  var openNote = '';
+  var carry = null; // { id, pics }: new-card pictures that did not go up, for the message box of that card
+  var inFlight = false;
+  var pendingOpen = null;
+  var dragging = null;
+  var deferred = null;
+
+  var data = null;
+  var lastGeneratedAt = null;
+  var byId = {};
+  var statusOf = {};
+  var flashIds = {};
+  var showAllDone = false;
+  var openId = null;
+  var filters = { q: '', stage: '', priority: '', type: '', dropped: false };
+
+  function fold(s) {
+    return String(s).toLowerCase().replace(/ł/g, 'l').normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+
+  /* ---------- filters ---------- */
+
+  function loadFilters() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+      if (saved && typeof saved === 'object') {
+        ['q', 'stage', 'priority', 'type'].forEach(function (k) {
+          if (typeof saved[k] === 'string') filters[k] = saved[k];
+        });
+        filters.dropped = saved.dropped === true;
+      }
+    } catch (e) { /* storage unavailable: filters just are not kept */ }
+  }
+
+  function saveFilters() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(filters)); } catch (e) { /* see above */ }
+  }
+
+  function fillSelect(id, allLabel, options) {
+    var sel = $(id);
+    sel.appendChild(new Option(allLabel, ''));
+    options.forEach(function (o) { sel.appendChild(new Option(o[1], o[0])); });
+  }
+
+  function initFilters() {
+    fillSelect('f-stage', CONFIG.stageAnyLabel, STAGES.map(function (s) { return [s, STAGE[s]]; }));
+    fillSelect('f-priority', 'Każdy priorytet', ['high', 'medium', 'low'].map(function (p) { return [p, PRIORITY[p]]; }));
+    fillSelect('f-type', 'Każdy rodzaj', TYPES.map(function (t) { return [t, TYPE[t]]; }));
+    loadFilters();
+    syncControls();
+    $('f-q').addEventListener('input', function () { filters.q = this.value; changed(); });
+    $('f-stage').addEventListener('change', function () { filters.stage = this.value; changed(); });
+    $('f-priority').addEventListener('change', function () { filters.priority = this.value; changed(); });
+    $('f-type').addEventListener('change', function () { filters.type = this.value; changed(); });
+    $('f-dropped').addEventListener('change', function () { filters.dropped = this.checked; changed(); });
+    $('f-clear').addEventListener('click', function () {
+      filters.q = ''; filters.stage = ''; filters.priority = ''; filters.type = '';
+      syncControls();
+      changed();
+    });
+  }
+
+  function syncControls() {
+    $('f-q').value = filters.q;
+    $('f-stage').value = filters.stage;
+    $('f-priority').value = filters.priority;
+    $('f-type').value = filters.type;
+    $('f-dropped').checked = filters.dropped;
+  }
+
+  function changed() {
+    saveFilters();
+    render();
+  }
+
+  function matches(t) {
+    if (filters.stage && t.stage !== filters.stage) return false;
+    if (filters.priority && t.priority !== filters.priority) return false;
+    if (filters.type && t.type !== filters.type) return false;
+    var q = fold(filters.q.trim());
+    if (q) {
+      var hay = fold([t.id, t.title, t.owner.title, t.owner.summary, t.goal || ''].concat(stepsOf(t).map(function (s) { return s.text; })).join(' '));
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  }
+
+  /* ---------- board ---------- */
+
+  // The order of a column (same rule as board.mjs columnOrder): hand-placed cards by rank, then by priority and id.
+  function byColumnOrder(a, b) {
+    var ra = typeof a.rank === 'number';
+    var rb = typeof b.rank === 'number';
+    if (ra && rb && a.rank !== b.rank) return a.rank - b.rank;
+    if (ra !== rb) return ra ? -1 : 1;
+    return (ra ? 0 : PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  }
+  function orderable(status) { return status !== 'done' && status !== 'dropped'; }
+  // Every ticket of a status, not only the ones the filters show: the order is saved for the whole column.
+  function columnTickets(status) {
+    return data.tickets.filter(function (t) { return t.status === status; }).sort(byColumnOrder);
+  }
+  function byNewestThenId(a, b) {
+    return (a.updated < b.updated ? 1 : a.updated > b.updated ? -1 : 0) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  }
+
+  function badge(cls, text, title) {
+    var b = h('span', 'badge' + (cls ? ' ' + cls : ''), text);
+    if (title) b.title = title;
+    return b;
+  }
+
+  function stageText(t) { return STAGE[t.stage] || t.stage; }
+
+  function priorityBadge(t) {
+    var label = PRIORITY[t.priority] || t.priority;
+    var b = h('span', 'badge' + (PRIORITY_CLASS[t.priority] ? ' ' + PRIORITY_CLASS[t.priority] : ''));
+    b.title = 'Priorytet: ' + label;
+    if (PRIORITY_MARK[t.priority]) {
+      var mark = h('span', null, PRIORITY_MARK[t.priority] + ' ');
+      mark.setAttribute('aria-hidden', 'true');
+      b.appendChild(mark);
+    }
+    b.appendChild(document.createTextNode(label));
+    return b;
+  }
+
+  var STEP_MARK = { done: '✓', doing: '▶', todo: '○' };
+  var STEP_WORD = { done: 'zrobione', doing: 'teraz', todo: 'do zrobienia' };
+
+  function stepsOf(t) { return Array.isArray(t.steps) ? t.steps : []; }
+
+  function stepsCount(t) {
+    var all = stepsOf(t);
+    var done = all.filter(function (s) { return s.status === 'done'; }).length;
+    return done + '/' + all.length;
+  }
+
+  function stepsBar(t) {
+    var all = stepsOf(t);
+    var done = all.filter(function (s) { return s.status === 'done'; }).length;
+    var box = h('div', 'steps-bar');
+    var track = h('span', 'steps-track');
+    track.setAttribute('aria-hidden', 'true');
+    var fill = h('span', 'steps-fill');
+    fill.style.display = 'block';
+    fill.style.width = Math.round(100 * done / all.length) + '%';
+    track.appendChild(fill);
+    box.appendChild(track);
+    var count = h('span', 'steps-count', stepsCount(t));
+    count.title = 'Zrobione kroki';
+    box.appendChild(count);
+    return box;
+  }
+
+  function stepsList(t) {
+    var ul = h('ul', 'steps');
+    stepsOf(t).forEach(function (s) {
+      var li = h('li', 'step ' + s.status);
+      var mark = h('span', 'step-mark', STEP_MARK[s.status] || '');
+      mark.setAttribute('aria-hidden', 'true');
+      li.appendChild(mark);
+      var body = h('span', 'step-text');
+      if (s.status === 'doing') {
+        body.appendChild(h('span', 'step-now', STEP_WORD.doing));
+        body.appendChild(document.createTextNode(' '));
+      } else {
+        body.appendChild(h('span', 'visually-hidden', (STEP_WORD[s.status] || s.status) + ': '));
+      }
+      body.appendChild(document.createTextNode(s.text));
+      li.appendChild(body);
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+
+  function doingStep(t) {
+    return stepsOf(t).filter(function (s) { return s.status === 'doing'; })[0];
+  }
+
+  function metaBadges(t, box) {
+    if (t.waiting) box.appendChild(badge('wait', 'czeka w kolejce', 'Ta zmiana czeka w kolejce na komputer z tablicą'));
+    box.appendChild(badge('', stageText(t), CONFIG.stageBadgeTitle));
+    box.appendChild(priorityBadge(t));
+    box.appendChild(badge('', TYPE[t.type] || t.type, 'Rodzaj'));
+    if (t.plan) box.appendChild(badge('', 'plan ' + t.plan, 'Pozycja w planie'));
+    if (t.blockedBy && t.blockedBy.length) box.appendChild(badge('blocked', 'czeka na ' + t.blockedBy.join(', '), 'Zadania, które muszą być skończone wcześniej'));
+    if (t.questions && t.questions.length) box.appendChild(badge('ask', 'pytania: ' + t.questions.length, 'Otwarte pytania do Ciebie'));
+    if (t.thread && t.thread.length) box.appendChild(badge('', 'rozmowa: ' + t.thread.length, 'Wpisy w rozmowie na tej karcie'));
+    var last = t.thread && t.thread.length ? t.thread[t.thread.length - 1] : null;
+    var running = claude.running && claude.running.id === t.id;
+    var waiting = claude.queue.filter(function (q) { return q.id === t.id; }).length;
+    if (running) box.appendChild(badge('busy', 'Claude pisze', 'Claude odpowiada teraz na wiadomość z tej karty'));
+    else if (waiting) box.appendChild(badge('ask', 'czeka na Claude', 'Claude odpowie, gdy skończy poprzednie wiadomości'));
+    // A closed card is answered by nobody: the same rule as the session-start line "Owner wrote".
+    else if (last && last.from === 'owner' && t.status !== 'done' && t.status !== 'dropped') box.appendChild(badge('ask', 'czeka na agenta', 'Twój wpis jest najnowszy: agent jeszcze na niego nie odpowiedział'));
+  }
+
+  function card(t) {
+    var li = h('li');
+    var a = h('a', 'card p-' + t.priority + (flashIds[t.id] ? ' flash' : '') + (t.waiting ? ' wait' : ''));
+    a.href = '#' + t.id;
+    a.setAttribute('data-id', t.id);
+    if (WRITE) a.draggable = true;
+    a.appendChild(h('span', 'card-id', t.id));
+    a.appendChild(h('h3', 'card-title', t.owner.title));
+    a.appendChild(h('p', 'card-summary', t.owner.summary));
+    if (claude.failed[t.id]) a.appendChild(h('p', 'card-fail', claude.failed[t.id]));
+    if (stepsOf(t).length) {
+      a.appendChild(stepsBar(t));
+      if (t.status === 'in-progress') {
+        a.appendChild(stepsList(t));
+      } else if (doingStep(t)) {
+        a.appendChild(h('p', 'card-now', 'Teraz: ' + doingStep(t).text));
+      }
+    }
+    var box = h('div', 'badges');
+    metaBadges(t, box);
+    if (t.attachments && t.attachments.length) box.appendChild(clipBadge(t.attachments.length));
+    a.appendChild(box);
+    li.appendChild(a);
+    return li;
+  }
+
+  function clipBadge(n) {
+    var ns = 'http://www.w3.org/2000/svg';
+    var b = h('span', 'badge clip');
+    b.title = 'Załączniki: ' + n;
+    b.setAttribute('role', 'img');
+    b.setAttribute('aria-label', 'Załączniki: ' + n);
+    var svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('aria-hidden', 'true');
+    var path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', 'M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48');
+    svg.appendChild(path);
+    b.appendChild(svg);
+    b.appendChild(document.createTextNode(String(n)));
+    return b;
+  }
+
+  function column(status, label, tickets) {
+    var col = h('section', 'col' + (status === 'owner' ? ' is-owner' : ''));
+    col.setAttribute('data-status', status);
+    col.setAttribute('aria-labelledby', 'col-' + status);
+    var head = h('div', 'col-head');
+    var title = h('h2', null, label);
+    title.id = 'col-' + status;
+    head.appendChild(title);
+    var count = h('span', 'count', String(tickets.length));
+    count.title = 'Liczba zadań';
+    head.appendChild(count);
+    if (WRITE && orderable(status) && data.tickets.some(function (t) { return t.status === status && typeof t.rank === 'number'; })) {
+      var sort = h('button', 'col-sort', 'Sortuj po priorytecie');
+      sort.type = 'button';
+      sort.title = 'Karty w tej kolumnie są ułożone ręcznie. Przywróć kolejność według priorytetu.';
+      sort.addEventListener('click', function () {
+        if (!confirm('Wrócić do kolejności według priorytetu w kolumnie „' + label + '”? Ręczne ułożenie kart w tej kolumnie zostanie utracone.')) return;
+        boardMsg.textContent = '';
+        sendOrder({ status: status, clear: true }, boardMsg, [sort]);
+      });
+      head.appendChild(sort);
+    }
+    col.appendChild(head);
+
+    var scroll = h('div', 'col-scroll');
+    var shown = tickets;
+    if (status === 'done') {
+      tickets.sort(byNewestThenId);
+      if (!showAllDone) shown = tickets.slice(0, DONE_LIMIT);
+    } else {
+      tickets.sort(byColumnOrder);
+    }
+    if (!tickets.length) {
+      scroll.appendChild(h('p', 'empty', 'Brak zadań'));
+    } else {
+      var ul = h('ul', 'cards');
+      shown.forEach(function (t) { ul.appendChild(card(t)); });
+      scroll.appendChild(ul);
+    }
+    if (shown.length < tickets.length) {
+      var more = h('button', 'more', 'Pokaż wszystkie (' + tickets.length + ')');
+      more.type = 'button';
+      more.addEventListener('click', function () { showAllDone = true; render(); });
+      scroll.appendChild(more);
+    }
+    col.appendChild(scroll);
+    return col;
+  }
+
+  function render() {
+    if (!data) return;
+    var scrollLeft = boardEl.scrollLeft;
+    var scrolls = {};
+    Array.prototype.forEach.call(boardEl.querySelectorAll('.col'), function (c) {
+      scrolls[c.getAttribute('data-status')] = c.querySelector('.col-scroll').scrollTop;
+    });
+    var active = document.activeElement;
+    var focusId = active && boardEl.contains(active) ? active.getAttribute('data-id') : null;
+    var focusMore = active && active.classList && active.classList.contains('more')
+      ? active.closest('.col').getAttribute('data-status') : null;
+
+    var visible = data.tickets.filter(matches);
+    var cols = COLUMNS.slice();
+    if (filters.dropped) cols.push(DROPPED);
+    var frag = document.createDocumentFragment();
+    cols.forEach(function (c) {
+      frag.appendChild(column(c[0], c[1], visible.filter(function (t) { return t.status === c[0]; })));
+    });
+    boardEl.textContent = '';
+    boardEl.appendChild(frag);
+
+    boardEl.scrollLeft = scrollLeft;
+    Array.prototype.forEach.call(boardEl.querySelectorAll('.col'), function (c) {
+      var st = c.getAttribute('data-status');
+      if (scrolls[st]) c.querySelector('.col-scroll').scrollTop = scrolls[st];
+    });
+    var target = focusId ? boardEl.querySelector('[data-id="' + focusId + '"]')
+      : focusMore ? boardEl.querySelector('[data-status="' + focusMore + '"] .more') : null;
+    if (target) target.focus({ preventScroll: true });
+  }
+
+  /* ---------- detail ---------- */
+
+  function section(title, content) {
+    var s = h('section');
+    s.appendChild(h('h3', null, title));
+    s.appendChild(content);
+    return s;
+  }
+
+  function list(items, tag) {
+    var l = h(tag || 'ul');
+    items.forEach(function (i) { l.appendChild(h('li', null, i)); });
+    return l;
+  }
+
+  function ticketLinks(ids) {
+    var l = h('ul');
+    ids.forEach(function (id) {
+      var li = h('li');
+      var other = byId[id];
+      if (other) {
+        var a = h('a', null, id);
+        a.href = '#' + id;
+        li.appendChild(a);
+        li.appendChild(document.createTextNode(': ' + other.title + ' (' + STATUS_LABEL[other.status] + ')'));
+      } else {
+        li.textContent = id;
+      }
+      l.appendChild(li);
+    });
+    return l;
+  }
+
+  /* ---------- attachments: thumbnails and the large view ---------- */
+
+  // Relative, so it works from the disk (Tablica.html in the project folder) and from the board program.
+  function attUrl(id, file) {
+    if (REMOTE) return id + '/' + file; // the path inside the data repository's attachments folder
+    return 'board/attachments/' + encodeURIComponent(id) + '/' + encodeURIComponent(file);
+  }
+
+  function attWho(a) { return a.from === 'owner' ? 'Ty' : 'Agent'; }
+
+  function attList(id) {
+    var t = byId[id];
+    // Newest first, like the gallery: the large view's previous/next follow this order.
+    return t && t.attachments ? t.attachments.slice().reverse() : [];
+  }
+
+  // The image is loaded only when its thumbnail is in the page (loadImages): the detail is built off-screen on every poll.
+  function thumb(t, file, key) {
+    var b = h('button', 'att-thumb');
+    b.type = 'button';
+    b.setAttribute('data-key', key);
+    b.setAttribute('aria-label', 'Powiększ obraz ' + file);
+    var img = h('img');
+    img.alt = '';
+    img.setAttribute('data-src', attUrl(t.id, file));
+    img.addEventListener('error', function () {
+      b.classList.add('broken');
+      b.textContent = 'Brak obrazu';
+    });
+    b.appendChild(img);
+    b.addEventListener('click', function () { openViewer(t.id, file, key); });
+    return b;
+  }
+
+  function loadImages(root) {
+    Array.prototype.forEach.call(root.querySelectorAll('img[data-src]'), function (img) {
+      if (!REMOTE) {
+        img.src = img.getAttribute('data-src');
+        return;
+      }
+      var path = img.getAttribute('data-src');
+      rmBlob(path).then(function (url) {
+        if (img.getAttribute('data-src') === path) img.src = url;
+      }, function () { img.dispatchEvent(new Event('error')); });
+    });
+  }
+
+  function attachmentsSection(t) {
+    var atts = attList(t.id);
+    if (!atts.length && !WRITE) return null;
+    var s = h('section', 'att-section');
+    s.appendChild(h('h3', null, 'Załączniki' + (atts.length ? ' (' + atts.length + ')' : '')));
+    if (atts.length) {
+      var ul = h('ul', 'att-list');
+      atts.forEach(function (a) {
+        var li = h('li', 'att');
+        li.appendChild(thumb(t, a.file, 'att|' + a.file));
+        if (WRITE) {
+          var del = h('button', 'att-del', '×');
+          del.type = 'button';
+          del.setAttribute('aria-label', 'Usuń obraz ' + a.file);
+          del.title = 'Usuń obraz';
+          del.addEventListener('click', function () {
+            if (!confirm('Usunąć obraz „' + a.file + '”? Zniknie też z wpisów w rozmowie.')) return;
+            focusAtt = true;
+            send('/api/detach', { id: t.id, file: a.file }, actMsg, []).then(function (answer) {
+              if (!answer || !answer.ok) focusAtt = false;
+            });
+          });
+          li.appendChild(del);
+        }
+        li.appendChild(h('div', 'att-cap', attWho(a) + ' · ' + a.date));
+        if (a.note) li.appendChild(h('div', 'att-note', a.note));
+        ul.appendChild(li);
+      });
+      s.appendChild(ul);
+    }
+    if (WRITE) {
+      var tools = h('div', 'att-tools');
+      var input = h('input');
+      input.type = 'file';
+      input.multiple = true;
+      input.accept = ATT_TYPES.join(',');
+      input.hidden = true;
+      input.className = 'att-file';
+      input.addEventListener('change', function () {
+        var files = Array.prototype.slice.call(input.files);
+        input.value = '';
+        addNow(files);
+      });
+      var add = h('button', 'act-btn att-add', 'Dodaj obraz');
+      add.type = 'button';
+      add.addEventListener('click', function () { input.click(); });
+      tools.appendChild(add);
+      tools.appendChild(input);
+      tools.appendChild(h('span', 'hint', 'albo wklej obraz (Ctrl+V), albo przeciągnij plik na to okno'));
+      s.appendChild(tools);
+    }
+    return s;
+  }
+
+  var vdlg = $('viewer');
+  var vImg = $('vw-img');
+  var vFail = $('vw-fail');
+  var vCap = $('vw-cap');
+  var vPrev = $('vw-prev');
+  var vNext = $('vw-next');
+  var vStage = $('vw-stage');
+  var vZoom = $('vw-zoom');
+  var vOpen = $('vw-open');
+  var viewer = { id: '', file: '', key: '' };
+
+  // Fit to the window (default) or natural size with scrolling; the choice stays while the owner steps through pictures.
+  function setZoom(on) {
+    vStage.classList.toggle('zoom', on);
+    vZoom.setAttribute('aria-pressed', on ? 'true' : 'false');
+    vZoom.textContent = on ? 'Dopasuj do okna' : 'Rozmiar 100%';
+    if (on) {
+      vStage.tabIndex = 0;
+      vStage.setAttribute('aria-label', 'Obraz w naturalnym rozmiarze, przewijany strzałkami');
+    } else {
+      vStage.removeAttribute('tabindex');
+      vStage.removeAttribute('aria-label');
+    }
+    vStage.scrollTop = vStage.scrollLeft = 0;
+  }
+
+  function showViewer() {
+    var list = attList(viewer.id);
+    var idx = -1;
+    list.forEach(function (a, i) { if (a.file === viewer.file) idx = i; });
+    if (idx < 0) {
+      vdlg.close();
+      return;
+    }
+    var a = list[idx];
+    var url = attUrl(viewer.id, a.file);
+    if (vImg.getAttribute('data-url') !== url) {
+      vImg.setAttribute('data-url', url);
+      vImg.hidden = false;
+      vFail.hidden = true;
+      if (REMOTE) {
+        vImg.removeAttribute('src');
+        vOpen.removeAttribute('href');
+        rmBlob(url).then(function (blobUrl) {
+          if (vImg.getAttribute('data-url') !== url) return;
+          vImg.src = blobUrl;
+          vOpen.href = blobUrl;
+        }, function () {
+          if (vImg.getAttribute('data-url') !== url) return;
+          vImg.hidden = true;
+          vFail.hidden = false;
+        });
+      } else {
+        vImg.src = url;
+        vOpen.href = url;
+      }
+      vStage.scrollTop = vStage.scrollLeft = 0;
+    }
+    vImg.alt = a.note || a.file;
+    vCap.textContent = '';
+    vCap.appendChild(h('div', null, [attWho(a), a.date, a.note || ''].filter(Boolean).join(' · ')));
+    vCap.appendChild(h('div', 'hint', a.file + ' · ' + (idx + 1) + ' z ' + list.length));
+    vPrev.hidden = vNext.hidden = list.length < 2;
+  }
+
+  function stepViewer(d) {
+    var list = attList(viewer.id);
+    if (list.length < 2) return;
+    var idx = 0;
+    list.forEach(function (a, i) { if (a.file === viewer.file) idx = i; });
+    viewer.file = list[(idx + d + list.length) % list.length].file;
+    showViewer();
+  }
+
+  function openViewer(id, file, key) {
+    viewer.id = id;
+    viewer.file = file;
+    viewer.key = key;
+    setZoom(false);
+    vImg.removeAttribute('data-url');
+    showViewer();
+    if (!vdlg.open) vdlg.showModal();
+    $('vw-close').focus();
+  }
+
+  vImg.addEventListener('error', function () {
+    vImg.hidden = true;
+    vFail.hidden = false;
+  });
+  vPrev.addEventListener('click', function () { stepViewer(-1); });
+  vNext.addEventListener('click', function () { stepViewer(1); });
+  vZoom.addEventListener('click', function () { setZoom(!vStage.classList.contains('zoom')); });
+  vImg.addEventListener('click', function () { setZoom(!vStage.classList.contains('zoom')); });
+  $('vw-close').addEventListener('click', function () { vdlg.close(); });
+  vdlg.addEventListener('keydown', function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); stepViewer(-1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); stepViewer(1); }
+  });
+  // A click on the dark area outside the picture and the buttons closes the large view (not the card).
+  vdlg.addEventListener('click', function (e) {
+    var c = e.target.classList;
+    // At natural size the stage is the scroll area (its scrollbars are part of it): a click there does not close.
+    if (e.target === vdlg || (c.contains('vw-stage') && !c.contains('zoom')) || c.contains('vw-bar')) vdlg.close();
+  });
+  vdlg.addEventListener('close', function () {
+    vImg.removeAttribute('src');
+    vImg.removeAttribute('data-url');
+    var back = null;
+    Array.prototype.forEach.call(dlgBody.querySelectorAll('.att-thumb'), function (el) {
+      if (el.getAttribute('data-key') === viewer.key) back = el;
+    });
+    if (back) back.focus({ preventScroll: true });
+    else if (dlg.open) $('dlg-close').focus();
+  });
+
+  function threadList(entries, t) {
+    var ul = h('ul', 'thread');
+    // Newest first; the key of a picture keeps the entry's place in the file.
+    entries.map(function (e, n) { return { e: e, n: n }; }).reverse().forEach(function (x) {
+      var e = x.e;
+      var n = x.n;
+      var li = h('li');
+      var head = h('div', 'thread-head');
+      head.appendChild(h('span', 'thread-who' + (e.from === 'claude' ? ' claude' : ''), e.from === 'owner' ? 'Ty' : 'Agent'));
+      head.appendChild(h('span', 'thread-date', e.date));
+      li.appendChild(head);
+      if (e.question) {
+        var q = h('div', 'thread-q');
+        q.appendChild(h('b', null, 'Pytanie: '));
+        q.appendChild(document.createTextNode(e.question));
+        li.appendChild(q);
+      }
+      li.appendChild(h('div', 'thread-text', e.text));
+      if (e.attachments && e.attachments.length) {
+        var pics = h('div', 'thread-att');
+        e.attachments.forEach(function (file) { pics.appendChild(thumb(t, file, 'th' + n + '|' + file)); });
+        li.appendChild(pics);
+      }
+      ul.appendChild(li);
+    });
+    return ul;
+  }
+
+  function detailContent(t) {
+    var frag = document.createDocumentFragment();
+    var title = h('h2', null, t.owner.title);
+    title.id = 'dlg-title';
+    frag.appendChild(title);
+    frag.appendChild(h('p', 'pl-summary', t.owner.summary));
+    var atts = attachmentsSection(t);
+    if (atts) frag.appendChild(atts);
+    // The talk with the owner is Polish and is what he opens the card for: above the English ticket.
+    if (t.thread && t.thread.length) frag.appendChild(section('Rozmowa', threadList(t.thread, t)));
+    if (t.questions && t.questions.length) frag.appendChild(section('Pytania', list(t.questions)));
+    if (stepsOf(t).length) frag.appendChild(section('Kroki (' + stepsCount(t) + ')', stepsList(t)));
+
+    frag.appendChild(h('div', 'en-head', 'Pełne zgłoszenie (po angielsku)'));
+    frag.appendChild(h('p', 'en-title', t.title));
+    if (t.goal) frag.appendChild(section('Cel', h('p', null, t.goal)));
+    if (t.context) frag.appendChild(section('Kontekst', h('p', null, t.context)));
+    if (t.scope && t.scope.length) frag.appendChild(section('Zakres', list(t.scope)));
+    if (t.outOfScope && t.outOfScope.length) frag.appendChild(section('Poza zakresem', list(t.outOfScope)));
+    if (t.acceptance && t.acceptance.length) frag.appendChild(section('Kryteria odbioru', list(t.acceptance, 'ol')));
+    if (t.files && t.files.length) frag.appendChild(section('Pliki', list(t.files)));
+    if (t.verification) frag.appendChild(section('Weryfikacja', h('p', null, t.verification)));
+    if (t.dependsOn && t.dependsOn.length) frag.appendChild(section('Zależy od', ticketLinks(t.dependsOn)));
+    var dependents = data.tickets.filter(function (o) { return o.dependsOn && o.dependsOn.indexOf(t.id) !== -1; })
+      .map(function (o) { return o.id; });
+    if (dependents.length) frag.appendChild(section('Od tego zależą', ticketLinks(dependents)));
+
+    // Newest first (the file keeps them oldest first).
+    var entries = t.history.slice().reverse();
+    entries.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+    var hist = h('ul', 'hist');
+    entries.forEach(function (e) {
+      var li = h('li');
+      li.appendChild(h('span', 'hist-date', e.date));
+      li.appendChild(h('span', 'hist-status', STATUS_LABEL[e.status] || e.status));
+      if (e.note) li.appendChild(h('span', null, e.note));
+      hist.appendChild(li);
+    });
+    frag.appendChild(section('Historia', hist));
+
+    frag.appendChild(section('Plik zgłoszenia', h('code', 'path', 'board/tickets/' + t.id + '.json')));
+    return frag;
+  }
+
+  // The box above the actions: what has to happen with this card now.
+  function renderNow(t) {
+    var s = t.status;
+    var head = '';
+    var owner = false;
+    var items = null;
+    var text = '';
+    var thread = t.thread || [];
+    if (s === 'owner') {
+      owner = true;
+      head = 'Czeka na Ciebie';
+      var asked = null;
+      thread.forEach(function (e) { if (e.from === 'claude') asked = e; });
+      var step = stepsOf(t).filter(function (x) { return x.status !== 'done'; })[0];
+      if (t.questions && t.questions.length) items = t.questions;
+      else if (asked) text = asked.text;
+      else if (step) text = step.text;
+      else text = 'Zdecyduj: przenieś kartę do Gotowe albo Zrobione, albo napisz komentarz.';
+    } else if (s === 'in-progress' || s === 'review') {
+      head = s === 'review' ? 'Agent sprawdza wynik' : 'Teraz pracuje agent';
+      var all = stepsOf(t);
+      var cur = all.filter(function (x) { return x.status === 'doing'; })[0] || all.filter(function (x) { return x.status === 'todo'; })[0];
+      if (cur) text = cur.text;
+    } else if (s === 'ready') {
+      head = 'Czeka na sesję';
+      var place = columnTickets('ready').map(function (o) { return o.id; }).indexOf(t.id) + 1;
+      text = 'Miejsce: ' + (place === 1 ? 'pierwsza w kolejce' : place + '. w kolejce');
+    } else if (s === 'idea') {
+      head = 'Do decyzji';
+      text = 'Pomysł: przenieś do Gotowe, jeśli ma być zrobiony.';
+    }
+    var box = h('div');
+    if (head) {
+      box.appendChild(h('h2', null, head));
+      if (items) box.appendChild(list(items));
+      else if (text) box.appendChild(h('p', null, text));
+      var last = thread.length ? thread[thread.length - 1] : null;
+      if (last && last.from === 'owner') box.appendChild(h('p', 'now-wait', 'Czekasz na odpowiedź agenta na Twój komentarz.'));
+    }
+    var sig = (owner ? 'owner|' : 'info|') + box.innerHTML;
+    if (sig === nowSig) return;
+    nowSig = sig;
+    nowEl.textContent = '';
+    nowEl.hidden = !head;
+    nowEl.className = 'dlg-now' + (owner ? ' owner' : '');
+    while (box.firstChild) nowEl.appendChild(box.firstChild);
+  }
+
+  function renderDetail(t, reset) {
+    renderNow(t);
+    renderActions(t, reset);
+    renderClaudeLine(t);
+    var scratch = h('div');
+    scratch.appendChild(detailContent(t));
+    var head = h('span', 'badges');
+    head.appendChild(badge('', STATUS_LABEL[t.status] || t.status, 'Stan'));
+    metaBadges(t, head);
+    var headBox = $('dlg-badges');
+    // Compared with what was built last time, not with the live page: a broken picture changes the live page.
+    if (reset || head.textContent !== headBox.textContent || scratch.innerHTML !== detailSig) {
+      var top = dlgBody.scrollTop;
+      detailSig = scratch.innerHTML;
+      $('dlg-id').textContent = t.id;
+      headBox.textContent = '';
+      while (head.firstChild) headBox.appendChild(head.firstChild);
+      dlgBody.textContent = '';
+      while (scratch.firstChild) dlgBody.appendChild(scratch.firstChild);
+      loadImages(dlgBody);
+      dlgBody.scrollTop = reset ? 0 : top;
+      if (focusAtt) {
+        focusAtt = false;
+        var next = dlgBody.querySelector('.att-thumb') || dlgBody.querySelector('.att-add');
+        if (next) next.focus({ preventScroll: true });
+      }
+    }
+  }
+
+  function openFromHash() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    if (!id) {
+      if (dlg.open) dlg.close();
+      return;
+    }
+    if (!data || !byId[id]) return;
+    openId = id;
+    renderDetail(byId[id], true);
+    if (WRITE) actMsg.textContent = openNote;
+    openNote = '';
+    if (WRITE && carry && carry.id === id) {
+      act.pics.push.apply(act.pics, carry.pics);
+      carry = null;
+      drawActChips();
+    }
+    if (!dlg.open) dlg.showModal();
+  }
+
+  function clearHash() {
+    if (!location.hash) return;
+    try {
+      history.replaceState(null, '', location.pathname + location.search);
+    } catch (e) {
+      location.hash = '';
+    }
+  }
+
+  var downOnBackdrop = false;
+  dlg.addEventListener('pointerdown', function (e) { downOnBackdrop = e.target === dlg; });
+  dlg.addEventListener('click', function (e) {
+    if (e.target === dlg && downOnBackdrop) dlg.close();
+  });
+  $('dlg-close').addEventListener('click', function () { dlg.close(); });
+  dlg.addEventListener('close', function () {
+    act.editing = null;
+    act.note = '';
+    act.answers = {};
+    act.key = '';
+    act.refocus = false;
+    clearPics(act.pics);
+    dlgBody.classList.remove('editing');
+    clearHash();
+    var id = openId;
+    openId = null;
+    var card = id ? boardEl.querySelector('[data-id="' + id + '"]') : null;
+    if (card) card.focus({ preventScroll: true });
+  });
+  window.addEventListener('hashchange', openFromHash);
+
+  /* ---------- write mode (only over http) ---------- */
+
+  // One request of the board program. Always resolves with { ok: true, ... } or { ok: false, error }.
+  function post(path, body) {
+    return fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (res) { return res.json(); }).then(function (answer) {
+      if (answer && answer.ok === true) return answer;
+      return { ok: false, error: answer && answer.error ? String(answer.error) : 'nieprawidłowa odpowiedź programu' };
+    }, function () {
+      return { ok: false, error: 'brak połączenia z programem tablicy' };
+    });
+  }
+
+  function setMsg(el, text, info) {
+    el.textContent = text;
+    el.classList.toggle('info', !!info && !!text);
+  }
+
+  function readFile(f) {
+    return new Promise(function (resolve, reject) {
+      var r = new FileReader();
+      r.onload = function () { resolve(r.result); };
+      r.onerror = function () { reject(new Error('read')); };
+      r.readAsDataURL(f);
+    });
+  }
+
+  // The refusals of /api/attach that the owner can meet, in Polish; any other text stays as the server wrote it.
+  var ATTACH_REFUSALS = [
+    [/the file is not a PNG, JPEG, GIF or WEBP picture/, function () { return 'to nie jest obraz PNG, JPEG, GIF ani WEBP'; }],
+    [/the picture is larger than (\d+) MB/, function (m) { return 'obraz jest większy niż ' + m[1] + ' MB'; }],
+    [/the picture is empty/, function () { return 'obraz jest pusty'; }],
+    [/note: must be at most (\d+) characters/, function (m) { return 'opis obrazu może mieć najwyżej ' + m[1] + ' znaków'; }],
+    [/The body is too large/, function () { return 'obraz jest za duży do wysłania'; }]
+  ];
+
+  function polishRefusal(text) {
+    for (var i = 0; i < ATTACH_REFUSALS.length; i++) {
+      var m = ATTACH_REFUSALS[i][0].exec(text);
+      if (m) return ATTACH_REFUSALS[i][1](m);
+    }
+    return text;
+  }
+
+  // Uploads the pictures that are not sent yet to the card, one after another, and tries every one even when an
+  // earlier one fails. Resolves with '' or one Polish sentence that names every picture that was not sent.
+  function uploadPics(id, pics, msgEl) {
+    var todo = pics.filter(function (p) { return !p.sent; });
+    var failed = [];
+    var i = 0;
+    function next() {
+      if (i >= todo.length) {
+        if (!failed.length) return Promise.resolve('');
+        var named = failed.map(function (f) { return '„' + f.label + '” (' + f.why + ')'; });
+        if (todo.length === 1) return Promise.resolve('obraz „' + failed[0].label + '” nie został wysłany (' + failed[0].why + ')');
+        return Promise.resolve('nie wysłano ' + failed.length + ' z ' + todo.length + ' obrazów: ' + named.join('; '));
+      }
+      var p = todo[i++];
+      setMsg(msgEl, 'Wysyłam ' + i + ' z ' + todo.length + '…', true);
+      return readFile(p.blob).then(function (data) {
+        var body = { id: id, data: data };
+        if (p.name) body.name = p.name;
+        return post('/api/attach', body);
+      }, function () {
+        return { ok: false, error: 'nie udało się odczytać pliku' };
+      }).then(function (answer) {
+        if (answer.ok) p.sent = answer.file || p.label;
+        else failed.push({ label: p.label, why: polishRefusal(answer.error) });
+        return next();
+      });
+    }
+    return next();
+  }
+
+  // Sends one request of the board program. Resolves with the answer, or null when another request is running.
+  // opts.pics: the live list of pending pictures; the ones in it when the send starts are uploaded to the card first
+  //   and then linked to the request as `attachments`. A picture added during the send waits for the next message.
+  // opts.redraw(): draws the chips again when the send is over (they show which pictures went up).
+  // opts.after(answer): a promise that is waited for after a successful request, before the buttons come back.
+  function send(path, body, msgEl, locked, opts) {
+    if (inFlight) return Promise.resolve(null);
+    opts = opts || {};
+    var pics = (opts.pics || []).slice();
+    inFlight = true;
+    var was = document.activeElement;
+    setMsg(msgEl, '');
+    locked.forEach(function (el) { el.disabled = true; });
+    // Remote: the pictures are inbox files written together with the operation, not uploaded to the card first.
+    var uploaded = pics.length && !REMOTE ? uploadPics(body.id, pics, msgEl) : Promise.resolve('');
+    return uploaded.then(function (error) {
+      if (error) return { ok: false, error: error };
+      if (REMOTE) return rmQueue(path.replace('/api/', ''), body, pics, msgEl);
+      if (pics.length) body.attachments = pics.map(function (p) { return p.sent; });
+      return post(path, body);
+    }).then(function (answer) {
+      if (answer.ok && opts.after) return opts.after(answer).then(function () { return answer; });
+      return answer;
+    }).then(function (answer) {
+      inFlight = false;
+      locked.forEach(function (el) { el.disabled = false; });
+      if (was && was.isConnected && locked.indexOf(was) !== -1) was.focus();
+      msgEl.classList.remove('info');
+      if (answer.ok) {
+        pics.forEach(function (p) {
+          var at = opts.pics.indexOf(p);
+          if (at === -1) return;
+          if (p.url) URL.revokeObjectURL(p.url);
+          opts.pics.splice(at, 1);
+        });
+      }
+      if (opts.redraw) opts.redraw();
+      if (answer.ok || pics.some(function (p) { return p.sent; })) load(true);
+      if (answer.ok) msgEl.textContent = '';
+      else if (/(goal|acceptance): missing required field/.test(answer.error || '')) {
+        // The usual case: a card the owner wrote himself has no English goal and acceptance yet.
+        msgEl.textContent = 'Tej karty nie da się jeszcze zamknąć jako zrobionej: agent nie rozpisał jej celu ani kryteriów odbioru. Możesz ją oddać do gotowych albo odrzucić.';
+      } else msgEl.textContent = 'Nie udało się: ' + answer.error;
+      return answer;
+    });
+  }
+
+  // The owner's order of one column: body is { status, ids } or { status, clear: true }. A refused order is told in
+  // Polish and the board is drawn again from the file.
+  function sendOrder(body, msgEl, locked) {
+    return send('/api/order', body, msgEl, locked).then(function (answer) {
+      if (answer && !answer.ok) {
+        act.orderFocus = '';
+        msgEl.textContent = /the column changed/.test(answer.error || '')
+          ? 'Kolumna zmieniła się w międzyczasie. Odświeżyłem tablicę, ułóż karty jeszcze raz.'
+          : 'Nie udało się zmienić kolejności: ' + answer.error;
+        load(true);
+      }
+      return answer;
+    });
+  }
+
+  /* ---------- pictures: checking, pending chips, paste and drop ---------- */
+
+  function makePic(f) {
+    // A pasted screenshot is always called image.png: the server then names it by the time.
+    var generic = /^image\.(png|jpe?g|gif|webp)$/i.test(f.name || '');
+    return { blob: f, label: f.name || 'obraz', name: f.name && !generic ? f.name : '', url: '', sent: '' };
+  }
+
+  // Splits files into the allowed ones and the Polish reasons for the others.
+  function pickFiles(files) {
+    var out = { ok: [], bad: [] };
+    files.forEach(function (f) {
+      var name = '„' + (f.name || 'plik') + '”';
+      if (ATT_TYPES.indexOf(f.type) === -1) out.bad.push(name + ' to nie obraz (wolno: PNG, JPEG, GIF, WEBP)');
+      else if (f.size > ATT_MAX) out.bad.push(name + ' jest za duży (najwyżej 15 MB)');
+      else out.ok.push(f);
+    });
+    return out;
+  }
+
+  function refusal(bad) { return bad.length ? 'Pominięto: ' + bad.join('; ') + '.' : ''; }
+
+  function clearPics(list) {
+    list.forEach(function (p) { if (p.url) URL.revokeObjectURL(p.url); });
+    list.length = 0;
+  }
+
+  function drawChips(box, list, label, afterRemove) {
+    box.textContent = '';
+    if (!list.length) return;
+    box.appendChild(h('span', 'chips-label', label));
+    list.forEach(function (p, i) {
+      var chip = h('span', 'chip');
+      var img = h('img');
+      img.alt = '';
+      img.src = p.url;
+      chip.appendChild(img);
+      chip.appendChild(h('span', 'chip-name', p.label + (p.sent ? ' (wysłany)' : '')));
+      var x = h('button', 'chip-x', '×');
+      x.type = 'button';
+      x.title = 'Usuń ten obraz z wiadomości';
+      x.setAttribute('aria-label', 'Usuń obraz ' + p.label);
+      x.addEventListener('click', function () {
+        if (p.url) URL.revokeObjectURL(p.url);
+        list.splice(i, 1);
+        drawChips(box, list, label, afterRemove);
+        if (afterRemove) afterRemove();
+      });
+      chip.appendChild(x);
+      box.appendChild(chip);
+    });
+  }
+
+  function addPending(list, files, redraw, msgEl) {
+    var picked = pickFiles(files);
+    picked.ok.forEach(function (f) {
+      var p = makePic(f);
+      p.url = URL.createObjectURL(f);
+      list.push(p);
+    });
+    redraw();
+    setMsg(msgEl, refusal(picked.bad));
+  }
+
+  // Pictures added to the open card at once (the file button, a paste or a drop outside the message box).
+  function addNow(files) {
+    var id = openId;
+    if (!id) return;
+    var picked = pickFiles(files);
+    if (!picked.ok.length) {
+      setMsg(actMsg, refusal(picked.bad));
+      return;
+    }
+    if (inFlight) {
+      setMsg(actMsg, 'Poczekaj, poprzednie wysyłanie jeszcze trwa.');
+      return;
+    }
+    inFlight = true;
+    if (REMOTE) {
+      // Pictures alone: an attach operation whose uploads are attached to the card, as /api/attach does locally.
+      rmQueue('attach', { id: id }, picked.ok.map(makePic), actMsg).then(function (answer) {
+        inFlight = false;
+        setMsg(actMsg, [answer.ok ? '' : 'Nie udało się: ' + answer.error + '.', refusal(picked.bad)].filter(Boolean).join(' '));
+        load(true);
+      });
+      return;
+    }
+    uploadPics(id, picked.ok.map(makePic), actMsg).then(function (error) {
+      inFlight = false;
+      setMsg(actMsg, [error ? 'Nie udało się: ' + error + '.' : '', refusal(picked.bad)].filter(Boolean).join(' '));
+      load(true);
+    });
+  }
+
+  function drawActChips() {
+    if (actChips) drawChips(actChips, act.pics, 'Do wysłania razem z wiadomością:', function () { if (noteEl) noteEl.focus(); });
+  }
+
+  function drawNewChips() {
+    drawChips($('n-chips'), newPics, 'Do dodania razem z kartą:');
+  }
+
+  function filesOf(dt) {
+    var out = [];
+    if (!dt) return out;
+    if (dt.items && dt.items.length) {
+      Array.prototype.forEach.call(dt.items, function (it) {
+        var f = it.kind === 'file' ? it.getAsFile() : null;
+        if (f) out.push(f);
+      });
+    }
+    if (!out.length && dt.files) out = Array.prototype.slice.call(dt.files);
+    return out;
+  }
+
+  function hasFiles(e) {
+    var types = e.dataTransfer && e.dataTransfer.types;
+    return !!types && Array.prototype.indexOf.call(types, 'Files') !== -1;
+  }
+
+  // Paste (Ctrl+V with an image) and drop on a dialog; `take(files, target)` decides what happens to the files.
+  function acceptPictures(dialog, take) {
+    dialog.addEventListener('paste', function (e) {
+      var files = filesOf(e.clipboardData);
+      if (!files.length) return; // plain text paste works as usual
+      e.preventDefault();
+      take(files, e.target);
+    });
+    function over(e) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+      dialog.classList.add('drop-hot');
+    }
+    dialog.addEventListener('dragenter', over);
+    dialog.addEventListener('dragover', over);
+    dialog.addEventListener('dragleave', function (e) {
+      if (!e.relatedTarget || !dialog.contains(e.relatedTarget)) dialog.classList.remove('drop-hot');
+    });
+    dialog.addEventListener('drop', function (e) {
+      if (!hasFiles(e)) return;
+      e.preventDefault();
+      dialog.classList.remove('drop-hot');
+      take(Array.prototype.slice.call(e.dataTransfer.files), e.target);
+    });
+    dialog.addEventListener('close', function () { dialog.classList.remove('drop-hot'); });
+  }
+
+  function initPictures() {
+    // In the message box the pictures wait for the message; anywhere else in the card they go up at once.
+    acceptPictures(dlg, function (files, target) {
+      var inNote = noteEl && noteEl.isConnected && (target === noteEl || document.activeElement === noteEl);
+      if (inNote) addPending(act.pics, files, drawActChips, actMsg);
+      else addNow(files);
+    });
+    acceptPictures($('new-dlg'), function (files) {
+      addPending(newPics, files, drawNewChips, $('n-msg'));
+    });
+    $('n-file-btn').addEventListener('click', function () { $('n-file').click(); });
+    $('n-file').addEventListener('change', function () {
+      var files = Array.prototype.slice.call(this.files);
+      this.value = '';
+      addPending(newPics, files, drawNewChips, $('n-msg'));
+    });
+  }
+
+  function field(cls, label, control) {
+    var l = h('label', 'act-field' + (cls ? ' ' + cls : ''));
+    l.appendChild(document.createTextNode(label + ' '));
+    l.appendChild(control);
+    return l;
+  }
+
+  function priorityOptions(sel) {
+    ['high', 'medium', 'low'].forEach(function (p) { sel.appendChild(new Option(PRIORITY[p], p)); });
+  }
+
+  function renderActions(t, reset) {
+    if (!WRITE) return;
+    if (reset) {
+      act.editing = null;
+      act.note = '';
+      act.answers = {};
+      act.key = '';
+      clearPics(act.pics);
+      dlgBody.classList.remove('editing');
+      actMsg.textContent = '';
+    }
+    if (act.editing) return;
+    // The questions are part of the key: the fields are rebuilt when one of them is answered elsewhere.
+    var key = t.id + '|' + t.status + '|' + JSON.stringify(t.questions || []) +
+      (orderable(t.status) ? '|' + columnTickets(t.status).map(function (o) { return o.id; }).join(',') : '');
+    if (key === act.key) return;
+    act.key = key;
+    buildActions(t);
+  }
+
+  // The line above the actions: Claude is writing (with the stop button), waits in the queue, or failed.
+  function renderClaudeLine(t) {
+    if (!WRITE) return;
+    var running = claude.running && claude.running.id === t.id ? claude.running : null;
+    var place = 0;
+    claude.queue.forEach(function (q, i) { if (!place && q.id === t.id) place = i + 1; });
+    var failed = claude.failed[t.id] || '';
+    var key = t.id + '|' + (running ? running.model : '') + '|' + place + '|' + failed;
+    if (key === claudeLineKey) return;
+    claudeLineKey = key;
+    actClaude.textContent = '';
+    actClaude.className = 'act-claude' + (failed && !running && !place ? ' fail' : '');
+    actClaude.hidden = !(running || place || failed);
+    if (running) {
+      actClaude.appendChild(h('span', null, 'Claude pisze… (' + running.model + ')'));
+      var stop = h('button', 'act-btn', 'Zatrzymaj');
+      stop.type = 'button';
+      stop.addEventListener('click', function () {
+        send('/api/claude-stop', { id: t.id }, actMsg, [stop]).then(pollClaude);
+      });
+      actClaude.appendChild(stop);
+    } else if (place) {
+      actClaude.appendChild(h('span', null, 'Claude odpowie na tę kartę po poprzednich wiadomościach (w kolejce: ' + place + ')'));
+    } else if (failed) {
+      actClaude.appendChild(h('span', null, failed));
+    }
+  }
+
+  function endActions() {
+    var focus = actRow.querySelector('.act-btn') || $('dlg-close');
+    if (act.refocus) {
+      act.refocus = false;
+      focus.focus();
+    }
+  }
+
+  function buildActions(t) {
+    actRow.textContent = '';
+    actEl.hidden = false;
+    var moves = MOVES[t.status] || {};
+    if (t.status === 'in-progress' || t.status === 'review') {
+      actRow.appendChild(h('p', 'act-line', 'Nad tą kartą pracuje agent'));
+      actRow.appendChild(h('p', 'act-line', 'Twój komentarz agent zobaczy przy najbliższym kroku pracy.'));
+    }
+    var owner = t.status === 'owner';
+    var note = h('textarea');
+    note.rows = owner ? 4 : 2;
+    note.value = act.note;
+    note.addEventListener('input', function () { act.note = note.value; });
+    noteEl = note;
+    actChips = h('div', 'chips');
+
+    var questions = t.questions || [];
+    var areas = [];
+
+    // What the owner typed: the non-blank answers to the open questions, in their order.
+    function typedAnswers() {
+      var list = [];
+      questions.forEach(function (q) {
+        var text = (act.answers[q] || '').trim();
+        if (text) list.push({ question: q, answer: text });
+      });
+      return list;
+    }
+
+    function clearTyped() {
+      act.note = '';
+      act.answers = {};
+      note.value = '';
+      areas.forEach(function (a) { a.value = ''; });
+    }
+
+    var box = h('div', 'act-buttons');
+    var buttons = [];
+
+    function moveTo(target) {
+      var body = { id: t.id, status: target };
+      var answers = typedAnswers();
+      if (answers.length) body.answers = answers;
+      if (act.note.trim()) body.note = act.note.trim();
+      send('/api/move', body, actMsg, buttons, { pics: act.pics, redraw: drawActChips }).then(function (answer) {
+        if (answer && answer.ok) {
+          clearTyped();
+          act.refocus = true;
+        }
+      });
+    }
+
+    Object.keys(moves).forEach(function (target, i) {
+      var b = h('button', 'act-btn' + (i === 0 ? ' primary' : ''), moves[target]);
+      b.type = 'button';
+      b.addEventListener('click', function () { moveTo(target); });
+      buttons.push(b);
+      box.appendChild(b);
+    });
+    var say = h('button', 'act-btn', questions.length ? 'Zapisz odpowiedź' : 'Dodaj komentarz');
+    say.type = 'button';
+    say.addEventListener('click', function () {
+      var body = { id: t.id };
+      var answers = typedAnswers();
+      if (answers.length) body.answers = answers;
+      if (act.note.trim()) body.text = act.note.trim();
+      if (!body.answers && !body.text && !act.pics.length) {
+        actMsg.textContent = questions.length ? 'Wpisz odpowiedź albo uwagę' : 'Wpisz komentarz';
+        return;
+      }
+      send('/api/say', body, actMsg, buttons, { pics: act.pics, redraw: drawActChips }).then(function (answer) {
+        if (answer && answer.ok) {
+          clearTyped();
+          // Answered questions leave the list, which rebuilds the fields.
+          if (body.answers) act.refocus = true;
+        }
+      });
+    });
+    buttons.push(say);
+    box.appendChild(say);
+    // A card that a session works on is not answered by a board turn.
+    if (t.status !== 'in-progress' && t.status !== 'review') {
+      var ask = h('button', 'act-btn', 'Wyślij do Claude');
+      ask.type = 'button';
+      var model = h('select');
+      CLAUDE_MODELS.forEach(function (m) { model.appendChild(new Option(m[1], m[0])); });
+      model.value = claudeModel;
+      model.addEventListener('change', function () { claudeModel = model.value; });
+      ask.addEventListener('click', function () {
+        if (!act.note.trim() && !act.pics.length) {
+          actMsg.textContent = 'Wpisz wiadomość do Claude';
+          return;
+        }
+        send('/api/claude', { id: t.id, text: act.note.trim(), model: model.value }, actMsg, buttons, { pics: act.pics, redraw: drawActChips }).then(function (answer) {
+          if (answer && answer.ok) {
+            clearTyped();
+            pollClaude();
+          }
+        });
+      });
+      buttons.push(ask, model);
+      box.appendChild(ask);
+      box.appendChild(field('narrow', 'Model', model));
+    }
+    if (EDITABLE.indexOf(t.status) !== -1) {
+      var edit = h('button', 'act-btn', 'Edytuj');
+      edit.type = 'button';
+      edit.addEventListener('click', function () {
+        var cur = byId[t.id] || t;
+        act.editing = { id: t.id, orig: { title: cur.owner.title, summary: cur.owner.summary, priority: cur.priority } };
+        dlgBody.classList.add('editing');
+        actMsg.textContent = '';
+        buildEdit();
+      });
+      buttons.push(edit);
+      box.appendChild(edit);
+    }
+    actRow.appendChild(box);
+
+    // Every other target the owner may move the card to; the targets with a button above appear only there.
+    var others = TARGETS.filter(function (s) { return s !== t.status && !moves[s]; });
+    if (others.length) {
+      var pick = h('select');
+      pick.appendChild(new Option('Wybierz kolumnę', ''));
+      others.forEach(function (s) { pick.appendChild(new Option(STATUS_LABEL[s], s)); });
+      var go = h('button', 'act-btn', 'Przenieś');
+      go.type = 'button';
+      go.addEventListener('click', function () {
+        if (!pick.value) {
+          actMsg.textContent = 'Wybierz, dokąd przenieść kartę';
+          return;
+        }
+        moveTo(pick.value);
+      });
+      buttons.push(pick, go);
+      var group = h('div', 'act-move');
+      group.appendChild(field('narrow', 'Przenieś do…', pick));
+      group.appendChild(go);
+      actRow.appendChild(group);
+    }
+    var orderUp = null;
+    var orderDown = null;
+    if (orderable(t.status)) {
+      var column = columnTickets(t.status).map(function (o) { return o.id; });
+      var at = column.indexOf(t.id);
+      var orderBox = h('div', 'act-order');
+      orderBox.setAttribute('role', 'group');
+      orderBox.setAttribute('aria-label', 'Miejsce karty w kolumnie');
+      orderBox.appendChild(h('span', 'act-order-label', 'Miejsce w kolumnie: ' + (at + 1) + ' z ' + column.length));
+      orderUp = h('button', 'act-btn', 'Wyżej');
+      orderDown = h('button', 'act-btn', 'Niżej');
+      orderUp.type = orderDown.type = 'button';
+      orderUp.setAttribute('aria-label', 'Wyżej w kolumnie');
+      orderDown.setAttribute('aria-label', 'Niżej w kolumnie');
+      var atEnds = function () {
+        orderUp.disabled = at <= 0;
+        orderDown.disabled = at < 0 || at >= column.length - 1;
+      };
+      atEnds();
+      var shift = function (by, which) {
+        // The column as it is now, not as it was when the buttons were drawn.
+        var cur = byId[t.id] || t;
+        var ids = columnTickets(cur.status).map(function (o) { return o.id; });
+        var here = ids.indexOf(t.id);
+        if (here < 0 || here + by < 0 || here + by >= ids.length) return;
+        ids.splice(here, 1);
+        ids.splice(here + by, 0, t.id);
+        act.orderFocus = which;
+        sendOrder({ status: cur.status, ids: ids }, actMsg, [orderUp, orderDown]).then(atEnds);
+      };
+      orderUp.addEventListener('click', function () { shift(-1, 'up'); });
+      orderDown.addEventListener('click', function () { shift(1, 'down'); });
+      orderBox.appendChild(orderUp);
+      orderBox.appendChild(orderDown);
+      actRow.appendChild(orderBox);
+    }
+    questions.forEach(function (q) {
+      var area = h('textarea');
+      area.rows = 3;
+      area.placeholder = 'Twoja odpowiedź';
+      area.value = act.answers[q] || '';
+      area.addEventListener('input', function () { act.answers[q] = area.value; });
+      areas.push(area);
+      actRow.appendChild(field('wide', q, area));
+    });
+    actRow.appendChild(field(owner ? 'big wide' : 'wide', owner ? 'Twoja ocena lub poprawki' : 'Komentarz dla agenta', note));
+    actRow.appendChild(actChips);
+    drawActChips();
+    if (act.orderFocus && orderUp) {
+      var wanted = act.orderFocus === 'up' ? [orderUp, orderDown] : [orderDown, orderUp];
+      var keep = wanted[0].disabled ? wanted[1] : wanted[0];
+      if (!keep.disabled) keep.focus({ preventScroll: true });
+    }
+    act.orderFocus = '';
+    endActions();
+  }
+
+  function buildEdit() {
+    var id = act.editing.id;
+    var orig = act.editing.orig;
+    actRow.textContent = '';
+    var form = h('form', 'act-edit');
+    var title = h('input');
+    title.type = 'text';
+    title.required = true;
+    title.value = orig.title;
+    var summary = h('textarea');
+    summary.rows = 5;
+    summary.required = true;
+    summary.value = orig.summary;
+    var prio = h('select');
+    priorityOptions(prio);
+    prio.value = orig.priority;
+    var save = h('button', 'act-btn primary', 'Zapisz');
+    save.type = 'submit';
+    var cancel = h('button', 'act-btn', 'Anuluj');
+    cancel.type = 'button';
+    var box = h('div', 'act-buttons');
+    box.appendChild(save);
+    box.appendChild(cancel);
+    form.appendChild(field('', 'Tytuł', title));
+    form.appendChild(field('', 'Opis', summary));
+    form.appendChild(field('narrow', 'Priorytet', prio));
+    form.appendChild(box);
+
+    function leave() {
+      act.editing = null;
+      act.key = '';
+      act.refocus = true;
+      dlgBody.classList.remove('editing');
+      if (byId[id]) renderActions(byId[id], false);
+    }
+    cancel.addEventListener('click', function () { actMsg.textContent = ''; leave(); });
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var body = { id: id };
+      if (title.value.trim() !== orig.title.trim()) body.title = title.value.trim();
+      if (summary.value.trim() !== orig.summary.trim()) body.summary = summary.value.trim();
+      if (prio.value !== orig.priority) body.priority = prio.value;
+      if (Object.keys(body).length === 1) { leave(); return; }
+      send('/api/edit', body, actMsg, [save, cancel]).then(function (answer) {
+        if (answer && answer.ok) leave();
+      });
+    });
+    actRow.appendChild(form);
+    title.focus();
+  }
+
+  function initNew() {
+    var dlgNew = $('new-dlg');
+    var type = $('n-type');
+    var stage = $('n-stage');
+    var prio = $('n-priority');
+    TYPES.forEach(function (k) { type.appendChild(new Option(TYPE[k], k)); });
+    STAGES.forEach(function (s) { stage.appendChild(new Option(STAGE[s], s)); });
+    priorityOptions(prio);
+    type.value = 'feature';
+    stage.value = CONFIG.defaultStage;
+    prio.value = 'medium';
+    try {
+      var saved = JSON.parse(localStorage.getItem(NEW_KEY) || 'null');
+      if (saved && TYPE[saved.type]) type.value = saved.type;
+      if (saved && STAGES.indexOf(saved.stage) !== -1) stage.value = saved.stage;
+    } catch (e) { /* storage unavailable: the choice is just not remembered */ }
+
+    $('new-btn').addEventListener('click', function () {
+      $('n-msg').textContent = '';
+      dlgNew.showModal();
+      $('n-title').focus();
+    });
+    $('n-cancel').addEventListener('click', function () { dlgNew.close(); });
+    $('new-form').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var title = $('n-title').value.trim();
+      var summary = $('n-summary').value.trim();
+      if (!title || !summary) {
+        $('n-msg').textContent = 'Nie udało się: wpisz tytuł i opis';
+        return;
+      }
+      var body = { title: title, summary: summary, type: type.value, stage: stage.value, priority: prio.value };
+      var after = function (answer) {
+        if (!newPics.length || !answer.id) return Promise.resolve();
+        return uploadPics(answer.id, newPics, $('n-msg')).then(function (error) {
+          if (!error) return;
+          // The card exists already: the owner is taken to it, and the pictures that did not go up wait there as chips
+          // under the message box (moved out of newPics, which is cleared on success).
+          carry = { id: answer.id, pics: newPics.filter(function (p) { return !p.sent; }) };
+          carry.pics.forEach(function (p) { newPics.splice(newPics.indexOf(p), 1); });
+          openNote = 'Karta ' + answer.id + ' została dodana, ale ' + error + '. Obrazy, które się nie wysłały, czekają pod polem wiadomości: wyślij je przyciskiem „Dodaj komentarz”.';
+        });
+      };
+      var sendOpts = REMOTE ? { pics: newPics, redraw: drawNewChips } : { after: after };
+      send('/api/new', body, $('n-msg'), [$('n-submit'), $('n-cancel')], sendOpts).then(function (answer) {
+        if (!answer || !answer.ok) return;
+        clearPics(newPics);
+        drawNewChips();
+        try { localStorage.setItem(NEW_KEY, JSON.stringify({ type: type.value, stage: stage.value })); } catch (e) { /* see above */ }
+        $('n-title').value = '';
+        $('n-summary').value = '';
+        dlgNew.close();
+        pendingOpen = answer.id || null;
+      });
+    });
+  }
+
+  function endDrag() {
+    dragging = null;
+    boardEl.classList.remove('dragging');
+    Array.prototype.forEach.call(boardEl.querySelectorAll('.col'), function (c) {
+      c.classList.remove('drop-ok', 'drop-dim', 'drop-over');
+    });
+    clearMarks();
+    Array.prototype.forEach.call(boardEl.querySelectorAll('.drag-source'), function (c) { c.classList.remove('drag-source'); });
+    if (deferred) {
+      var d = deferred;
+      deferred = null;
+      apply(d);
+    }
+  }
+
+  function clearMarks() {
+    Array.prototype.forEach.call(boardEl.querySelectorAll('.mark-before, .mark-after'), function (li) {
+      li.classList.remove('mark-before', 'mark-after');
+    });
+  }
+
+  // Where the dragged card would land inside its own column: { id, after } (next to the card `id`), or null.
+  function sortPlace(e) {
+    var el = e.target.nodeType === 1 ? e.target : e.target.parentElement;
+    var col = el && el.closest('.col');
+    if (!dragging || !col || col.getAttribute('data-status') !== dragging.status || !orderable(dragging.status)) return null;
+    var cards = col.querySelectorAll('.card');
+    if (!cards.length) return null;
+    var over = el.closest('.card');
+    if (over) {
+      var r = over.getBoundingClientRect();
+      return { card: over, after: e.clientY > r.top + r.height / 2 };
+    }
+    return el.closest('.col-head') ? { card: cards[0], after: false } : { card: cards[cards.length - 1], after: true };
+  }
+
+  function showPlace(place) {
+    clearMarks();
+    if (place.card.getAttribute('data-id') === dragging.id) return;
+    place.card.parentElement.classList.add(place.after ? 'mark-after' : 'mark-before');
+  }
+
+  // The new order of the whole column (also the cards the filters hide) after the drop, or null when nothing changes.
+  function orderAfterDrop(place) {
+    var ids = columnTickets(dragging.status).map(function (o) { return o.id; });
+    var before = ids.join(',');
+    var target = place.card.getAttribute('data-id');
+    if (target === dragging.id || ids.indexOf(dragging.id) === -1) return null;
+    ids.splice(ids.indexOf(dragging.id), 1);
+    ids.splice(ids.indexOf(target) + (place.after ? 1 : 0), 0, dragging.id);
+    return ids.join(',') === before ? null : ids;
+  }
+
+  function dropStatus(e) {
+    var el = e.target.nodeType === 1 ? e.target : e.target.parentElement;
+    var col = el && el.closest('.col');
+    if (!dragging || !col) return null;
+    var status = col.getAttribute('data-status');
+    return status === dragging.status ? null : status;
+  }
+
+  // The columns W toku and Sprawdzanie take a drop too, only to say that the agent sets them.
+  function accepts(status) {
+    return TARGETS.indexOf(status) !== -1;
+  }
+
+  function initDrag() {
+    boardEl.addEventListener('dragstart', function (e) {
+      var el = e.target.nodeType === 1 ? e.target : e.target.parentElement;
+      var a = el && el.closest('.card');
+      var t = a && byId[a.getAttribute('data-id')];
+      if (!t) {
+        e.preventDefault();
+        return;
+      }
+      var mine = { id: t.id, status: t.status };
+      dragging = mine;
+      boardMsg.textContent = '';
+      if (e.dataTransfer) {
+        e.dataTransfer.setData('text/plain', t.id);
+        e.dataTransfer.effectAllowed = 'move';
+      }
+      // Marking the columns later: changing the page inside dragstart can cancel the drag or dim the drag image.
+      setTimeout(function () {
+        if (dragging !== mine) return;
+        boardEl.classList.add('dragging');
+        a.classList.add('drag-source');
+        Array.prototype.forEach.call(boardEl.querySelectorAll('.col'), function (c) {
+          var to = c.getAttribute('data-status');
+          // Its own column takes the card for sorting (not dimmed) unless it is Zrobione or Odrzucone.
+          if (to === mine.status && orderable(to)) return;
+          c.classList.add(to !== mine.status && accepts(to) ? 'drop-ok' : 'drop-dim');
+        });
+      }, 0);
+    });
+    function over(e) {
+      var place = sortPlace(e);
+      if (place) {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        Array.prototype.forEach.call(boardEl.querySelectorAll('.col'), function (c) { c.classList.remove('drop-over'); });
+        showPlace(place);
+        return;
+      }
+      clearMarks();
+      var status = dropStatus(e);
+      if (!status) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      Array.prototype.forEach.call(boardEl.querySelectorAll('.col'), function (c) {
+        c.classList.toggle('drop-over', accepts(status) && c.getAttribute('data-status') === status);
+      });
+    }
+    boardEl.addEventListener('dragenter', over);
+    boardEl.addEventListener('dragover', over);
+    boardEl.addEventListener('drop', function (e) {
+      var place = sortPlace(e);
+      if (place) {
+        e.preventDefault();
+        var ids = orderAfterDrop(place);
+        var column = dragging.status;
+        endDrag();
+        if (ids) sendOrder({ status: column, ids: ids }, boardMsg, []);
+        return;
+      }
+      var status = dropStatus(e);
+      if (!status) return;
+      e.preventDefault();
+      var id = dragging.id;
+      endDrag();
+      if (!accepts(status)) {
+        boardMsg.textContent = AGENT_COLUMNS_MSG;
+        return;
+      }
+      var open = byId[id];
+      if (status === 'ready' && open && open.questions && open.questions.length) {
+        // The answers are written under the questions, so the owner is taken to the card.
+        openNote = 'Ta karta ma pytania. Odpowiedz pod nimi i oddaj kartę przyciskiem.';
+        if (location.hash === '#' + id) openFromHash();
+        else location.hash = '#' + id;
+        return;
+      }
+      send('/api/move', { id: id, status: status }, boardMsg, []);
+    });
+    boardEl.addEventListener('dragend', endDrag);
+  }
+
+  function initWrite() {
+    if (!WRITE) {
+      $('hint').hidden = false;
+      return;
+    }
+    $('new-btn').hidden = false;
+    initPictures();
+    initNew();
+    initDrag();
+  }
+
+  /* ---------- data ---------- */
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  function stampText(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return 'dane z ' + iso;
+    if (REMOTE) return 'stan z ' + pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    return 'dane z ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+
+  function apply(d) {
+    var valid = d && Array.isArray(d.tickets);
+    if (!valid) {
+      if (!data) {
+        messageEl.hidden = false;
+        boardEl.hidden = true;
+        stampEl.textContent = 'brak danych';
+      }
+      return;
+    }
+    if (data && d.generatedAt === lastGeneratedAt) return;
+    if (dragging && data) {
+      // A redraw would remove the dragged card from under the mouse.
+      deferred = d;
+      return;
+    }
+
+    var first = !data;
+    var previous = statusOf;
+    data = withQueued(d);
+    lastGeneratedAt = d.generatedAt;
+    byId = {};
+    statusOf = {};
+    data.tickets.forEach(function (t) {
+      byId[t.id] = t;
+      statusOf[t.id] = t.status + '|' + JSON.stringify(t.steps || []);
+      if (!first && previous[t.id] !== undefined && previous[t.id] !== statusOf[t.id]) {
+        flashIds[t.id] = true;
+        setTimeout(function () {
+          delete flashIds[t.id];
+          var el = boardEl.querySelector('[data-id="' + t.id + '"]');
+          if (el) el.classList.remove('flash');
+        }, FLASH_MS);
+      }
+    });
+
+    messageEl.hidden = true;
+    boardEl.hidden = false;
+    stampEl.textContent = stampText(d.generatedAt);
+    render();
+
+    if (first) {
+      openFromHash();
+    } else if (dlg.open && openId) {
+      if (byId[openId]) renderDetail(byId[openId], false);
+    }
+    if (vdlg.open) showViewer();
+    if (pendingOpen && byId[pendingOpen]) {
+      var opened = pendingOpen;
+      pendingOpen = null;
+      location.hash = '#' + opened;
+    }
+  }
+
+  var MISS_LIMIT = 3;
+  var ANSWER_MS = 4000;
+  var misses = 0;
+  var pollTimer = 0;
+  var pollFrame = null;
+
+  function endPoll(answered) {
+    if (!pollFrame) return;
+    clearTimeout(pollFrame.timer);
+    pollFrame.el.remove();
+    pollFrame = null;
+    if (answered) {
+      misses = 0;
+      return;
+    }
+    misses++;
+    if (misses >= MISS_LIMIT) {
+      clearInterval(pollTimer);
+      var note = document.createElement('span');
+      note.className = 'stamp';
+      note.textContent = 'Automatyczne odświeżanie nie działa w tej przeglądarce: odśwież stronę (F5), aby zobaczyć zmiany.';
+      stampEl.parentNode.appendChild(note);
+    }
+  }
+
+  window.addEventListener('message', function (event) {
+    if (!pollFrame || event.source !== pollFrame.el.contentWindow) return;
+    if (!FROM_DISK && event.origin !== location.origin) return;
+    var d = event.data && event.data.boardData;
+    endPoll(true);
+    apply(d);
+  });
+
+  function load(force) {
+    if (REMOTE) {
+      remoteTick(force);
+      return;
+    }
+    if (pollFrame) {
+      if (!force) return;
+      // An answer that was asked for before the change may carry the old data.
+      clearTimeout(pollFrame.timer);
+      pollFrame.el.remove();
+      pollFrame = null;
+    }
+    var el = document.createElement('iframe');
+    el.hidden = true;
+    el.setAttribute('aria-hidden', 'true');
+    el.src = location.pathname + '?poll=' + Date.now();
+    pollFrame = { el: el, timer: setTimeout(function () { endPoll(false); }, ANSWER_MS) };
+    document.body.appendChild(el);
+  }
+
+  // The state of the Claude turns, asked from the board program; the board is drawn again only when it changed.
+  var claudeSeen = '';
+  function pollClaude() {
+    if (!WRITE || REMOTE) return;
+    fetch('/api/claude').then(function (res) { return res.json(); }).then(function (state) {
+      if (!state || state.ok !== true) return;
+      // A redraw would remove the dragged card from under the mouse: the next poll shows the change.
+      if (dragging) return;
+      var seen = JSON.stringify([state.running, state.queue, state.failed]);
+      if (seen === claudeSeen) return;
+      claudeSeen = seen;
+      claude = { running: state.running, queue: state.queue || [], failed: state.failed || {} };
+      render();
+      if (dlg.open && openId && byId[openId]) renderDetail(byId[openId], false);
+      // A turn that ended has written its answer into a ticket: look at the data now, not at the next poll.
+      load(true);
+    }, function () { /* the board program is not reachable: the data poll shows that */ });
+  }
+
+  /* ---------- remote mode: actions as inbox files, the waiting bar, the poll of the data repository ---------- */
+
+  var PIC_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp' };
+  var OP_LABEL = {
+    move: 'przeniesienie', say: 'komentarz', claude: 'wiadomość do Claude', 'claude-stop': 'zatrzymanie Claude',
+    edit: 'edycja', 'new': 'nowa karta', order: 'kolejność', attach: 'obraz', detach: 'usunięcie obrazu'
+  };
+  var waitEl = null;
+  var rawData = null;
+  var ticking = false;
+  var tickAgain = false;
+
+  // Writes one operation of the owner into the inbox: the pictures first (one file each), then the operation's json.
+  // Resolves like post(): { ok: true, queued: true, id } or { ok: false, error }.
+  function rmQueue(op, body, pics, msgEl) {
+    var opId = rmOpId();
+    var uploads = [];
+    var i = 0;
+    boardMsg.textContent = '';
+    function nextPic() {
+      if (i >= pics.length) return Promise.resolve(null);
+      var p = pics[i++];
+      var file = opId + '.' + i + '.' + (PIC_EXT[p.blob.type] || 'png');
+      setMsg(msgEl, 'Wysyłam ' + i + ' z ' + pics.length + '…', true);
+      return readFile(p.blob).then(function (url) {
+        return rmPut(file, url.slice(url.indexOf(',') + 1), 'inbox: picture of ' + op);
+      }, function () { return { ok: false, error: 'nie udało się odczytać pliku' }; }).then(function (res) {
+        if (!res.ok) return { ok: false, error: 'obraz „' + p.label + '” nie został wysłany (' + res.error + ')' };
+        var u = { file: file };
+        if (p.name) u.name = p.name;
+        uploads.push(u);
+        return nextPic();
+      });
+    }
+    return nextPic().then(function (failed) {
+      if (failed) return failed;
+      var json = { op: op, body: body };
+      if (uploads.length) json.uploads = uploads;
+      json.at = new Date().toISOString();
+      return rmPut(opId + '.json', rmEncode(JSON.stringify(json)), 'inbox: ' + op + (body.id ? ' ' + body.id : ''));
+    }).then(function (res) {
+      if (!res.ok) return res;
+      rm.own[opId] = { op: op, id: body.id || '', status: body.status || '' };
+      if (rm.onQueued) rm.onQueued();
+      return { ok: true, queued: true, id: body.id };
+    });
+  }
+
+  // The tickets as they will be when the queued moves are applied: the card is already in its target column, marked.
+  function withQueued(d) {
+    var moves = {};
+    Object.keys(rm.own).sort().forEach(function (opId) {
+      var o = rm.own[opId];
+      if (o.op === 'move' && o.id && !rm.results[opId]) moves[o.id] = o.status;
+    });
+    if (!Object.keys(moves).length) return d;
+    var copy = {};
+    Object.keys(d).forEach(function (k) { copy[k] = d[k]; });
+    copy.tickets = d.tickets.map(function (t) {
+      if (!moves[t.id]) return t;
+      var w = {};
+      Object.keys(t).forEach(function (k) { w[k] = t[k]; });
+      w.status = moves[t.id];
+      w.waiting = true;
+      delete w.rank;
+      return w;
+    });
+    return copy;
+  }
+
+  function reapply() {
+    if (!rawData) return;
+    lastGeneratedAt = null;
+    apply(rawData);
+    renderWait();
+  }
+
+  function ageText(ms) {
+    var min = Math.floor(Math.max(0, ms) / 60000);
+    if (min < 1) return 'mniej niż minuty';
+    if (min < 60) return min + ' min';
+    if (min < 1440) return Math.floor(min / 60) + ' godz. ' + (min % 60) + ' min';
+    return Math.floor(min / 1440) + ' dn.';
+  }
+
+  // The operations that wait for the computer with the board: files of the inbox that data.json does not list yet,
+  // and the ones this page has just written.
+  function renderWait() {
+    if (!waitEl) return;
+    var ids = {};
+    rm.inboxNames.forEach(function (n) {
+      var m = /^(\d{13}-[0-9a-f]{8})\.json$/.exec(n);
+      if (m && !rm.results[m[1]]) ids[m[1]] = true;
+    });
+    Object.keys(rm.own).forEach(function (k) { if (!rm.results[k]) ids[k] = true; });
+    var list = Object.keys(ids).sort();
+    waitEl.hidden = !list.length;
+    if (!list.length) return;
+    waitEl.textContent = 'W kolejce czeka zmian: ' + list.length + '. Najstarsza od ' + ageText(Date.now() - Number(list[0].slice(0, 13))) +
+      '. Trafią na tablicę, gdy włączy się komputer z tablicą.';
+  }
+
+  // A new state of the board: what happened to the operations of this page, the Claude state, then the board itself.
+  function takeRemote(d) {
+    var r = d.remote || {};
+    rm.results = r.results || {};
+    var c = r.claude || {};
+    claude = { running: c.running || null, queue: c.queue || [], failed: c.failed || {} };
+    var errors = [];
+    Object.keys(rm.own).sort().forEach(function (opId) {
+      var res = rm.results[opId];
+      if (!res) return;
+      var o = rm.own[opId];
+      delete rm.own[opId];
+      if (res.ok === false) errors.push((OP_LABEL[o.op] || o.op) + (o.id ? ' ' + o.id : '') + ': ' + (res.error || 'nieznany błąd'));
+    });
+    if (errors.length) boardMsg.textContent = 'Komputer z tablicą nie wykonał zmiany. ' + errors.join('; ');
+    rawData = d;
+    apply(d);
+    renderWait();
+  }
+
+  // Asks GitHub for the state and the inbox; `force` runs it again when a poll is in progress.
+  function remoteTick(force) {
+    if (ticking) {
+      if (force) tickAgain = true;
+      return;
+    }
+    ticking = true;
+    rmGetData().then(function (d) {
+      if (d) takeRemote(d);
+      return rmInbox();
+    }).then(function () {
+      renderWait();
+      if (lastGeneratedAt) stampEl.textContent = stampText(lastGeneratedAt);
+    }, function () {
+      if (lastGeneratedAt) stampEl.textContent = stampText(lastGeneratedAt) + ' (brak połączenia z GitHubem)';
+    }).then(function () {
+      ticking = false;
+      if (tickAgain) {
+        tickAgain = false;
+        remoteTick(false);
+      }
+    });
+  }
+
+  function initRemote() {
+    var top = document.querySelector('header.top');
+    var tag = h('span', 'remote-tag', 'Zdalna tablica · ' + rm.folder);
+    tag.id = 'remote-tag';
+    top.insertBefore(tag, stampEl);
+    top.insertBefore(rmButton('Zmień tablicę', false, function () { location.href = location.pathname + '?pick=1'; }), stampEl);
+    top.insertBefore(rmButton('Wyloguj', false, rmLogout), stampEl);
+    waitEl = h('p', 'remote-wait');
+    waitEl.id = 'remote-wait';
+    waitEl.setAttribute('role', 'status');
+    waitEl.hidden = true;
+    boardMsg.parentNode.insertBefore(waitEl, boardMsg);
+    rm.onQueued = reapply;
+  }
+
+  initFilters();
+  initWrite();
+  if (REMOTE) {
+    initRemote();
+    takeRemote(initial);
+    remoteTick(true);
+  } else {
+    apply(initial);
+  }
+
+  pollTimer = setInterval(load, POLL_MS);
+  if (WRITE && !REMOTE) {
+    pollClaude();
+    setInterval(pollClaude, CLAUDE_POLL_MS);
+  }
+  }
+
+  if (REMOTE) rmBoot().then(run);
+  else run(window.BOARD_DATA);
+})();
+</script>
+</body>
+</html>
