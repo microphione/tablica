@@ -2914,8 +2914,12 @@ window.BOARD_DATA = null;
     var list = Object.keys(ids).sort();
     waitEl.hidden = !list.length;
     if (!list.length) return;
-    waitEl.textContent = 'W kolejce czeka zmian: ' + list.length + '. Najstarsza od ' + ageText(Date.now() - Number(list[0].slice(0, 13))) +
-      '. Trafią na tablicę, gdy włączy się komputer z tablicą.';
+    // The running board server syncs every 20 s and the page reads every 15 s, so a change older than a minute means
+    // the computer with the board is not syncing.
+    var age = Date.now() - Number(list[0].slice(0, 13));
+    waitEl.textContent = 'W kolejce czeka zmian: ' + list.length + '. Najstarsza od ' + ageText(age) + '. ' + (age < 60000
+      ? 'Komputer z tablicą wprowadza zmiany co 20 sekund.'
+      : 'Komputer z tablicą chyba jest wyłączony: zmiany trafią na tablicę, gdy się włączy.');
   }
 
   // A new state of the board: what happened to the operations of this page, the Claude state, then the board itself.
